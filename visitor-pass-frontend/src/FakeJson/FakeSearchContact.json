@@ -1,0 +1,15 @@
+{
+    "contactNumber": "6399028046",
+    "visitorName": "Suryansh Sharma",
+    "address": {
+        "city": "Bulandshahr",
+        "pincode": "203001",
+        "line1": "House no 4 shikarpur compound near D.M Residence"
+      },
+    "isParentOfSchoolStudent": true,
+    "childRecords":[
+        {"name":"Ajay","class":"6"}
+    ],
+    "host":"Rajesh Sir",
+    "reason":"Personal Work"
+}

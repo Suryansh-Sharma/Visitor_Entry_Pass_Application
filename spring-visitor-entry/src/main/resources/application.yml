@@ -1,0 +1,31 @@
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  config:
+    import: optional:classpath:secret-application.yml
+  graphql:
+    graphiql:
+      enabled: true
+    cors:
+      allow-credentials: true
+      allowed-origins:
+        - http://192.168.0.191:3000/
+        - http://localhost:3000/
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/visitor-entry-pass
+      database: VisitorEntryPass
+  servlet:
+    multipart:
+      enabled: true
+      file-size-threshold: 2KB
+      max-file-size: 10MB
+      max-request-size: 10MB
+logging:
+  level:
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+
+server:
+  shutdown: graceful
+
+expiration_time: "30"

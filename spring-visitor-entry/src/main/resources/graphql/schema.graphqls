@@ -1,0 +1,236 @@
+scalar LocalDateTime
+scalar LocalDate
+type Query {
+    getVisit(id: ID!): String
+
+    getVisitorByContact(visitorContact: String!):VisitorDto
+
+    getVisitorById(visitorId:String!):VisitorDto
+
+    getVisitOfVisitor(id:String,page_size:Int=10,page_number:Int=0,sort_by:String,sort_order:SortDirection):VisitingRecordPage
+
+    getVisitorOnSpecificDate(date:String!,page_size:Int=10,page_number:Int=0,sort_by:String,sort_order:SortDirection):PagingVisitDto
+
+    searchVisitor(filters:[SearchFilter]!,pageSize:Int=10,pageNumber:Int=0,sort_by:String,sort_order:SortDirection):VisitorPagination
+
+    getVisitorsOnPeriod(from_date:String!,to_date:String!,page_size:Int=10,page_number:Int=0,,sort_by:String,sort_order:SortDirection):PagingVisitDto
+
+    getAllTelegramIds:[TelegramIdDto]
+}
+type Mutation {
+    addNewTelegramId(input:TelegramIdModel!):String
+
+    updateTelegramId(input:TelegramIdModel!,id:String!):String
+
+    deleteTelegramId(id:String!):String
+
+    addNewVisit(input: VisitInput!):String
+
+    updateVisitorInfo(input:VisitorInput):VisitorDto
+
+    banVisitor(visitorId:String!,reason:String!):String
+
+    unBanStatus(visitorId:String!):String
+
+    registerNewUser(input: UserInput!):UserDto!
+
+    loginUser(username:String!,password:String!):UserDto!
+
+    verifyOtpForUser(Otp:Int!):String
+
+    regenerateOtpForUser:String
+
+    regenJwtFromRefreshToken(refreshToken:String!):Credentials!
+
+    handleLogout(authorization: String!,refreshToken:String!):String
+
+    forgetPassword(username:String!):String
+}
+
+# Input Model
+input SearchFilter{
+    key:String,
+    value:String
+}
+input UserInput{
+    username:String!
+    contact:String!
+    password:String!
+    role:Role!
+}
+input UserLoginInput{
+    contact:String!
+    password:String!
+}
+input VisitInput {
+    visitorContact: String!
+    visitorName: String!
+    visitorImage: String!
+    hasChildrenInSchool: Boolean
+    banStatus:BanStatusInput
+    visitorAddress: VisitorAddressInput
+    visitorChildren: [VisitorChildInput]
+    visitingRecord: VisitingRecordInput!
+}
+input VisitorInput{
+    id:String!
+    visitorContact: String!
+    visitorName: String!
+    visitorImage: String
+    hasChildrenInSchool: Boolean
+    banStatus:BanStatusInput
+    visitorAddress: VisitorAddressInput
+    visitorChildren: [VisitorChildInput]
+}
+
+input BanStatusInput {
+    isVisitorBanned:Boolean!
+    reason:String!
+}
+
+input VisitingRecordInput{
+    reason:String!
+    visitorHost:String!
+    status:STATUS
+    note:String
+}
+
+input VisitorAddressInput {
+    city: String
+    pinCode: String
+    line1: String
+}
+
+input VisitorChildInput {
+    name: String
+    standard: String
+}
+
+input TelegramIdModel {
+    chatId:String
+    role:Role
+    hostName:String
+}
+enum SortDirection {
+    ASC
+    DESC
+}
+enum Role {
+    USER,
+    ADMIN,
+    RECEPTIONIST,
+    TEACHER,
+    EXTRA
+}
+enum STATUS {
+    COMPLETED,
+    CANCELLED,
+    NOT_AVAILABLE,
+    PENDING,
+    HOST_NOT_AVAILABLE,
+}
+# Output Dto.
+type UserDto{
+    id:String!
+    username:String!
+    contact:String!
+    role:Role!
+    isActive:Boolean!
+    isVerified:Boolean!
+    credentials:Credentials!
+}
+type VisitorDto{
+    id:String
+    visitorContact: String
+    visitorName: String
+    visitorImage: String
+    banStatus: BanStatusDto
+    visitorAddress: VisitorAddressDTO
+    hasChildrenInSchool: Boolean
+    lastVisitedOn:LocalDateTime
+    visitorChildren: [VisitorChild]
+}
+type BanStatusDto{
+    bannedOn:LocalDateTime
+    isVisitorBanned:Boolean
+    reason:String
+}
+type VisitorPagination{
+    pageNo:Int
+    totalPages:Int
+    data:[VisitorDto]
+    pageSize:Int
+    totalData:Int
+}
+type PagingVisitDto{
+    pageNo:Int
+    totalPages:Int
+    data:[VisitWithVisitorInfoDto]
+    pageSize:Int
+    totalData:Int
+}
+type VisitWithVisitorInfoDto{
+    id:String,
+    visitedOn:String,
+    reason:String
+    visitorHost:String,
+    status:String,
+    note:String
+    visitorInfo:VisitorInfo
+}
+type VisitorInfo{
+    id:String
+    visitorContact:String
+    visitorName:String
+    visitorImage:String
+}
+type VisitingRecordPage{
+    pageNo:Int
+    totalPages:Int
+    data:[VisitRecordDto]
+    pageSize:Int
+    totalData:Int
+}
+
+type VisitRecordDto{
+    visitedOn:String
+    reason:String,
+    visitorHost:String,
+    status:STATUS
+    note:String
+}
+
+type VisitorAddressDTO {
+    line1: String
+    city: String
+    state: String
+    country: String
+    pinCode: String
+}
+
+type VisitorChild {
+    name: String
+    standard: String
+}
+
+type Credentials {
+    jwtToken:JWTToken!
+    refreshToken:RefreshToken!
+}
+type JWTToken{
+    token:String!
+    validity:String
+}
+type RefreshToken{
+    token:String!
+    generatedOn:String!
+    expiresOn:String!
+}
+
+type TelegramIdDto {
+    id:String
+    chatId:String
+    role:String
+    hostName:String
+    dateOfJoin:LocalDateTime
+}

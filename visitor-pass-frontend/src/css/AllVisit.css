@@ -1,0 +1,159 @@
+/* DatePicker.css */
+
+/* Date Picker Container */
+.datePickerContainer {
+    margin: 1rem;
+    width: 200px;
+  }
+  
+  .formLabel {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  .formControl {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  /* Result Information */
+  .resultContainer {
+    margin: 1rem 0;
+  }
+  
+  .entriesCard {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #e3f2fd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+  }
+  
+  .totalEntriesLabel {
+    font-size: 1.125rem;
+    color: #1e88e5;
+    margin-right: 0.5rem;
+  }
+  
+  .totalEntriesValue {
+    font-size: 1.125rem;
+    color: #0d47a1;
+    font-weight: bold;
+  }
+  
+  /* Grid for Profile Cards */
+  .gridContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  /* Pagination Section */
+  .paginationContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .paginationButton {
+    padding: 0.5rem 1rem;
+    background-color: #1e88e5;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .paginationButton:disabled {
+    background-color: #90caf9;
+    cursor: not-allowed;
+  }
+  
+  .paginationButton:hover:not(:disabled) {
+    background-color: #1565c0;
+  }
+  
+  /* Page Number Button */
+  .pageNumberButton {
+    padding: 0.5rem 1rem;
+    background-color: #f1f1f1;
+    color: #333;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .pageNumberButton:hover {
+    background-color: #e1e1e1;
+  }
+  
+  .activePage {
+    background-color: #1e88e5;
+    color: white;
+  }
+  
+  .inactivePage {
+    background-color: #f1f1f1;
+    color: #333;
+  }
+  
+
+  /* No Data */
+  /* Container to center everything */
+.no-data-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 0; /* Adjusted padding for top and bottom */
+}
+
+/* Card styling */
+.no-data-card {
+  text-align: center;
+  padding: 2rem;
+  border: 2px solid #e5e7eb; /* Light gray border */
+  border-radius: 1rem; /* Rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  background-color: #ffffff; /* White background */
+}
+
+/* Main message styling */
+.no-data-message {
+  font-size: 1.5rem; /* Larger font size for the message */
+  color: #4b5563; /* Dark gray color */
+  font-weight: 600;
+  margin-bottom: 1rem; /* Margin between message and image */
+}
+
+/* Highlight the date in red */
+.date-highlight {
+  color: #ef4444; /* Red color for date */
+  font-weight: bold;
+}
+
+/* Image container and styling */
+.no-data-image-container {
+  margin-top: 1.5rem;
+}
+
+.no-data-image {
+  margin: 0 auto;
+  height: 6rem; /* Adjust height */
+  width: 6rem; /* Adjust width */
+  object-fit: contain; /* Ensure the image maintains its aspect ratio */
+  margin-bottom: 1rem; /* Margin below the image */
+}
+
+/* Text below image */
+.no-data-text {
+  margin-top: 1rem;
+  font-size: 0.875rem; /* Smaller font size */
+  color: #6b7280; /* Gray color */
+}

@@ -1,0 +1,36 @@
+{
+  "contactNumber": "6399028048",
+  "visitorName": "Suryansh",
+  "visitorEmail": "suryanshsharma1942@gmail.com",
+  "visitorImage": "https://cdn.pixabay.com/photo/2023/05/29/19/24/peonies-8027028_1280.jpg",
+  "visitorAddress": {
+    "city": "Bulandshahr",
+    "pincode": "203001",
+    "line1": "House no 4 shikarpur compound near D.M Residence"
+  },
+  "hasChildrenInSchool": true,
+  "latestVisitDate": "",
+  "visitCompleted": true,
+  "children": [
+      {
+        "name": "Child 1",
+        "class": "8"
+      },
+      {
+        "name": "Child 2",
+        "class": "9"
+      }
+    ],
+  "totalVisits": 2,
+  "visitingRecords": [
+    {
+      "date": "2023-05-12",
+      "time": "12:30",
+      "reason": "Personal Work",
+      "location": "Office",
+      "status": "Visited",
+      "calledOn": "",
+      "visitCompletedOn": ""
+    }
+  ]
+}

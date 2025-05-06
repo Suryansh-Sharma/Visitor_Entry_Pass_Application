@@ -1,0 +1,202 @@
+/* SignUp Section */
+.SignUpForm{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 200px;
+}
+.TelegramIdForm{
+  display: flex;
+  justify-content: center;
+  margin-top: 100px;
+}
+
+.SortSection {
+  display: flex;
+  margin: 10px;
+  gap: 20px;
+  flex-direction: row;
+}
+.PaginationSec{
+    display: flex;
+    align-items: center;  
+    justify-content: center;  
+    gap: 0.5rem;          
+    margin-top: 1.5rem;        
+    margin-bottom: 1.5rem; 
+}
+
+.DesktopOptionNav{
+  display: flex;
+  align-items: center; /* Centers items vertically */
+  justify-content: flex-start;
+}
+
+@media screen and (max-width: 500px) {
+  .SortSection {
+    display: flex;
+    flex-direction: column;
+  }
+  .DesktopOptionNav{
+    display: none;
+  }
+  .SignUpForm{
+    margin-top: 10px;
+  }
+  
+}
+
+@media print {
+    .PaginationSec,.SortSection,.NavBar{
+        display: none;
+    }
+}
+
+/* Search User */
+/* SearchPage.css */
+
+/* General Container Styles */
+.search-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  padding: 16px;
+}
+
+.dropdown-container {
+  min-width: fit-content;
+}
+
+.dropdown-toggle {
+  height: 50px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.dropdown-menu {
+  margin-top: 8px;
+}
+
+/* Search Input & Button */
+.search-input-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.search-input-wrapper {
+  flex-grow: 1;
+  background-color: #f0f0f0;
+  border-radius: 30px;
+  padding: 8px;
+}
+
+.search-input {
+  width: 100%;
+  background-color: transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  outline: none;
+  border-radius: 30px;
+}
+
+.search-button {
+  padding: 8px 16px;
+  border-radius: 30px;
+}
+
+/* Results Section */
+.result-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.total-records {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.total-label {
+  font-weight: bold;
+  /* margin-right: 8px; */
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 3fr));
+  gap: 20px;
+}
+
+.card-item {
+  max-width: 18rem;
+  margin: 0 auto;
+}
+
+.visitor-card {
+  width: 350px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.visitor-image {
+  height: 200px;
+  width: auto;
+  object-fit: cover;
+  border-radius: 15px 15px 0 0;
+}
+
+.view-details-btn {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.view-details-btn:hover {
+  background-color: #218838;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pagination-btn:disabled {
+  background-color: #d6d6d6;
+  cursor: not-allowed;
+}
+
+.page-number-btn {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.page-number-btn:hover {
+  background-color: #e9ecef;
+}
+
+.page-number-btn.active {
+  background-color: #007bff;
+  color: white;
+}
