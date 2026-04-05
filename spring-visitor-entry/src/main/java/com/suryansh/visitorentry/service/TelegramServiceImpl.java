@@ -19,11 +19,11 @@ import org.springframework.graphql.execution.ErrorType;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -42,59 +42,59 @@ public class TelegramServiceImpl implements TelegramService {
     private final TelegramIdRepository telegramIdRepository;
     private final MapperService mapperService;
     private final CacheService cacheService;
+    private final MyTelegramBot telegramBot;
     @Value("${folder.images}")
     private String FOLDER_PATH;
     @Value("${telegram.chatIdSuryansh}")
     private String DEFAULT_CHAT_ID;
 
-    private final MyTelegramBot telegramBot;
     private static final Logger logger = LoggerFactory.getLogger(TelegramServiceImpl.class);
 
-    public TelegramServiceImpl(TelegramIdRepository telegramIdRepository, MyTelegramBot telegramBot, MapperService mapperService, CacheService cacheService) {
+    public TelegramServiceImpl(
+            TelegramIdRepository telegramIdRepository,
+            MapperService mapperService,
+            CacheService cacheService, MyTelegramBot telegramBot) {
         this.telegramIdRepository = telegramIdRepository;
-        this.telegramBot = telegramBot;
         this.mapperService = mapperService;
         this.cacheService = cacheService;
+        this.telegramBot = telegramBot;
     }
 
-    @Override
     @Async
+    @Override
     public void sendVisitMessageToHost(TelegramMessageDto dto) {
         try {
-            if(dto.hostName().equals("OTHER")){
+            if ("OTHER".equals(dto.hostName())) {
                 return;
             }
-            // Retrieve chat ID
-            TelegramIdDocument telegramIdByName = getTelegramIdByName(dto.hostName());
-            if (telegramIdByName == null || telegramIdByName.getChatId().isEmpty()) {
-                logger.error("Chat ID not found for user: {}. Unable to send message.", dto.hostName());
+            TelegramIdDocument telegramId = getTelegramIdByName(dto.hostName());
+            if (telegramId == null || telegramId.getChatId().isEmpty()) {
+                logger.error("Chat ID not found for user {}", dto.hostName());
                 return;
             }
 
-            String chatId = telegramIdByName.getChatId();
-            SendPhoto sendPhoto = new SendPhoto();
-            sendPhoto.setChatId(chatId);
-
-            // Prepare and validate image file
             String imagePath = FOLDER_PATH + "/" + dto.visitorImage();
             File imageFile = new File(imagePath);
             if (!imageFile.exists()) {
                 logger.error("Image file not found at {}. Unable to send photo for visitor: {}", imagePath, dto.visitorName());
                 return;
             }
-
+            logger.info("Image path {} ",imageFile.getAbsolutePath());
+            SendPhoto sendPhoto = new SendPhoto();
+            String chatId = telegramId.getChatId();
+            sendPhoto.setChatId(chatId);
             // Set photo and caption
             sendPhoto.setPhoto(new InputFile(imageFile));
             sendPhoto.setCaption(buildMessage(dto));
 
             // Execute Telegram message
+            sendPhoto.setParseMode("Markdown");
+            sendPhoto.setReplyMarkup(buildKeyboard(dto.visitId()));
+            logger.info("Send Photo {}", sendPhoto);
             telegramBot.execute(sendPhoto);
-            logger.info("Telegram message sent successfully for visitor {} to host {}.", dto.visitorName(), dto.hostName());
-
-        } catch (TelegramApiException e) {
-            logger.error("Failed to send message via Telegram for visitor {}: {}", dto.visitorName(), e.getMessage(), e);
+            logger.info("Visitor request sent to {}", chatId);
         } catch (Exception e) {
-            logger.error("An unexpected error occurred in sendNewVisitMessage for visitor {}: {}", dto.visitorName(), e.getMessage(), e);
+            logger.error("Error sending telegram message for visitor {}", dto.visitorName(), e);
         }
     }
 
@@ -114,12 +114,11 @@ public class TelegramServiceImpl implements TelegramService {
 
     @Override
     public CompletableFuture<String> updateTelegramId(TelegramIdModel dto, String id) {
-        return CompletableFuture.supplyAsync(()->{
-            Optional<TelegramIdDocument> optional = getTelegramIdByIdAndCheckDuplicate(id,dto);
-            if (optional.isEmpty()){
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<TelegramIdDocument> optional = getTelegramIdByIdAndCheckDuplicate(id, dto);
+            if (optional.isEmpty()) {
                 throw new SpringVisitorException("Unable to find record !!", ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
             }
-
             TelegramIdDocument oldDocument = optional.get();
             oldDocument.setRole(dto.getRole());
             oldDocument.setChatId(dto.getChatId());
@@ -140,20 +139,20 @@ public class TelegramServiceImpl implements TelegramService {
     @Override
     @CacheEvict(value = "telegramIdDocument", allEntries = true)
     public CompletableFuture<String> deleteTelegramId(String id) {
-        return CompletableFuture.supplyAsync(()->{
+        return CompletableFuture.supplyAsync(() -> {
             TelegramIdDocument document = cacheService.getAllTelegramIdFromCache().stream()
                     .filter(record -> record.getId().equals(id))
                     .findFirst()
                     .orElseThrow(() -> new SpringVisitorException("Unable to find record !!", ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND));
 
-            try{
+            try {
                 telegramIdRepository.delete(document);
                 String msg = String.format("Telegram Chat_Id:- %s is deleted successfully of Host:- %s of Role:- %s", document.getChatId(),
                         document.getHostName(), document.getRole());
                 sendMsgToADMIN(msg);
                 logger.info("Telegram Id {} is deleted successfully.", id);
-                return "Successfully deleted telegram id. "+id;
-            }catch (Exception e) {
+                return "Successfully deleted telegram id. " + id;
+            } catch (Exception e) {
                 logger.error("Unable to delete telegram chat id {}", e.toString());
                 throw new SpringVisitorException("Unable to delete in software", ErrorType.INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -164,7 +163,7 @@ public class TelegramServiceImpl implements TelegramService {
     @Override
     @CacheEvict(value = "telegramIdDocument", allEntries = true)
     public CompletableFuture<String> addNewTelegramId(TelegramIdModel model) {
-        return CompletableFuture.supplyAsync(()->{
+        return CompletableFuture.supplyAsync(() -> {
             checkTelegramIdExist(model);
             TelegramIdDocument newRecord = TelegramIdDocument.builder()
                     .hostName(model.getHostName())
@@ -174,7 +173,7 @@ public class TelegramServiceImpl implements TelegramService {
                     .build();
             try {
                 telegramIdRepository.save(newRecord);
-                String msg = String.format("Telegram Id:- %s is added successfully for host:- %s", newRecord.getId(),newRecord.getHostName());
+                String msg = String.format("Telegram Id:- %s is added successfully for host:- %s", newRecord.getId(), newRecord.getHostName());
                 logger.info("New {} record is added successfully for telegram messaging ", model);
                 sendMsgToADMIN(msg);
                 return "New Id is added successfully for telegram messaging";
@@ -189,7 +188,7 @@ public class TelegramServiceImpl implements TelegramService {
     @Override
     public void sendMsgToADMIN(String subMessage) {
         List<TelegramIdDocument> adminsList = telegramIdRepository.findAllByRole(UserDocument.ROLE.ADMIN);
-        // If list is empty then send QR Code to main dev.
+        // If a list is empty, then send QR Code to the main dev.
         if (adminsList.isEmpty()) {
             try {
                 SendMessage sendMessage = new SendMessage();
@@ -198,7 +197,7 @@ public class TelegramServiceImpl implements TelegramService {
                 // Sending the message using telegramBot (ensure this is properly instantiated/injected)
                 sendMessage.setParseMode("HTML");
                 telegramBot.execute(sendMessage);
-            } catch (TelegramApiException e) {
+            } catch (Exception e) {
                 // Log the error and continue sending to the other admins
                 logger.error("Failed to send message to DEFAULT admin with chatId: {} ", DEFAULT_CHAT_ID);
             }
@@ -212,7 +211,7 @@ public class TelegramServiceImpl implements TelegramService {
 
                 // Sending the message using telegramBot (ensure this is properly instantiated/injected)
                 telegramBot.execute(sendMessage);
-            } catch (TelegramApiException e) {
+            } catch (Exception e) {
                 // Log the error and continue sending to the other admins
                 logger.error("Failed to send message to admin with chatId: {} ", telegramIdDoc.getChatId());
             }
@@ -220,31 +219,56 @@ public class TelegramServiceImpl implements TelegramService {
     }
 
 
-
     private void checkTelegramIdExist(TelegramIdModel dto) {
         cacheService.getAllTelegramIdFromCache()
                 .forEach(document -> {
                     if (document.getHostName().equals(dto.getHostName())) {
                         throw new SpringVisitorException("User name is already present", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-                    }else if (document.getChatId().equals(dto.getChatId())) {
+                    } else if (document.getChatId().equals(dto.getChatId())) {
                         throw new SpringVisitorException("ChatId is already present", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
                     }
                 });
     }
-    // Helper method to build message
-    private String buildMessage(TelegramMessageDto dto) {
-        return String.format("New visit added:\nVisitor Name: %s\nContact Number: %s\nReason: %s\nAddress: %s, %s, %s",
-                dto.visitorName(), dto.visitorContact(), dto.reason(), dto.line1(), dto.city(), dto.pinCode());
-    }
 
-    private Optional<TelegramIdDocument> getTelegramIdByIdAndCheckDuplicate(String id,TelegramIdModel model) {
+    private String buildMessage(TelegramMessageDto dto) {
+        return String.format(
+                """
+                        🚪 *New Visitor Request*
+                        
+                        *Visitor:* %s
+                        *Contact:* %s
+                        *Reason:* %s
+                        
+                        *Address:*
+                        %s, %s, %s""",
+                dto.visitorName(),
+                dto.visitorContact(),
+                dto.reason(),
+                dto.line1(),
+                dto.city(),
+                dto.pinCode()
+        );
+    }
+    private InlineKeyboardMarkup buildKeyboard(String visitId) {
+        InlineKeyboardButton accept = new InlineKeyboardButton();
+        accept.setText("✅ Accept");
+        accept.setCallbackData("VISIT|ACCEPT|" + visitId);
+        InlineKeyboardButton reject = new InlineKeyboardButton();
+        reject.setText("❌ Reject");
+        reject.setCallbackData("VISIT|REJECT|" + visitId);
+        List<InlineKeyboardButton> row = List.of(accept, reject);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(List.of(row));
+        return markup;
+    }
+    private Optional<TelegramIdDocument> getTelegramIdByIdAndCheckDuplicate(String id, TelegramIdModel model) {
         Optional<TelegramIdDocument> res = Optional.empty();
-        for (TelegramIdDocument document:cacheService.getAllTelegramIdFromCache()) {
+        for (TelegramIdDocument document : cacheService.getAllTelegramIdFromCache()) {
             if (document.getId().equals(id)) {
                 res = Optional.of(document);
-            }else if (document.getHostName().equals(model.getHostName()) || document.getChatId().equals(model.getChatId())) {
+            } else if (document.getHostName().equals(model.getHostName()) || document.getChatId().equals(model.getChatId())) {
                 throw new SpringVisitorException("Chat Id and Hostname must be unique !! ",
-                        ErrorType.BAD_REQUEST,HttpStatus.BAD_REQUEST);
+                        ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
         }
         return res;

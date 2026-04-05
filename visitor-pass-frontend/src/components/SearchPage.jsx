@@ -5,8 +5,8 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "react-toastify";
 import { SEARCH_VISITOR } from "../graphQl/queries";
 import LoadingPage from "./LoadingPage";
-import "../css/Common.css"
-import  defaultImage from "../assets/User_Icon.png";
+import "../css/Common.css";
+import defaultImage from "../assets/User_Icon.png";
 function SearchPage() {
   const { target, filterKey, filterValue } = useParams();
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ function SearchPage() {
     filterKey: filterKey || "name",
     filterValue: filterValue,
   });
-  let  page_no = parseInt(queryParams.get("page_no")) || 0
+  let page_no = parseInt(queryParams.get("page_no")) || 0;
 
   useEffect(() => {
     setisPageLoading(true);
@@ -95,7 +95,7 @@ function SearchPage() {
     ) {
       return;
     }
-    if(searchQuery.sortDir!=="ASC" && searchQuery.sortDir!=="DESC"){
+    if (searchQuery.sortDir !== "ASC" && searchQuery.sortDir !== "DESC") {
       alert("Wrong Sort Order. Use only ASC or DESC");
       return;
     }
@@ -111,7 +111,7 @@ function SearchPage() {
         pageSize: searchQuery.pageSize,
         pageNumber: page_no,
         sort_by: searchQuery.sortBy,
-        sort_order: searchQuery.sortDir
+        sort_order: searchQuery.sortDir,
       },
     });
     const error = response.error;
@@ -139,28 +139,29 @@ function SearchPage() {
     navigate(
       `/search/${target}/${filterKey}/${
         filterValue || "none"
-      }?${queryParams.toString()}`
+      }?${queryParams.toString()}`,
     );
   };
   const handlePageChange = (value) => {
-    page_no = value
+    page_no = value;
     const queryParams = new URLSearchParams({
       page_no: page_no,
       page_size: searchQuery.pageSize,
       sort_by: searchQuery.sortBy,
       sort_dir: searchQuery.sortDir,
     });
-    
+
     navigate(
       `/search/${target}/${filterKey}/${
         filterValue || "none"
-      }?${queryParams.toString()}`
-      ,{replace:true});
+      }?${queryParams.toString()}`,
+      { replace: true },
+    );
   };
 
-  const viewVisitorProfile=(id)=>{
-    navigate(`/visitor-profile/${id}`)
-  }
+  const viewVisitorProfile = (id) => {
+    navigate(`/visitor-profile/${id}`);
+  };
 
   if (loading || isPageLoading) return <LoadingPage />;
   return (
@@ -176,11 +177,13 @@ function SearchPage() {
               {filterKey}
             </Dropdown.Toggle>
             <Dropdown.Menu className="dropdown-menu">
-              {["Name", "Contact", "Address", "ChildName"].map((variant, key) => (
-                <Dropdown.Item key={key} eventKey={variant}>
-                  {variant}
-                </Dropdown.Item>
-              ))}
+              {["Name", "Contact", "Address", "ChildName"].map(
+                (variant, key) => (
+                  <Dropdown.Item key={key} eventKey={variant}>
+                    {variant}
+                  </Dropdown.Item>
+                ),
+              )}
             </Dropdown.Menu>
           </Dropdown>
         </div>
@@ -220,33 +223,61 @@ function SearchPage() {
       {/* Result section */}
       {result.data.length > 0 ? (
         <div className="result-container">
-          <div className="total-records">
+          {/* Total Records */}
+          <div className="total-records mb-3">
             <span className="total-label">Total Record:- </span>
             <span>{result.totalData}</span>
           </div>
-          <div className="card-grid">
-            {result.data.map((visitor, key) => (
-              <div className="card-item" key={key}>
-                <Card className="visitor-card">
-                  <Card.Img
-                    variant="top"
-                    src={visitor.visitorImage ?
-                      `http://localhost:8080/api/v1/file/image-by-name/${visitor.visitorImage}`
-                      :defaultImage
-                    }
-                    alt="Visitor Image"
-                    className="visitor-image"
-                  />
-                  <Card.Body>
-                    <Card.Title>{visitor.visitorName}</Card.Title>
-                    <Card.Text>
-                      <strong>Contact:</strong> {visitor.visitorContact}
-                    </Card.Text>
-                    <Card.Text>
-                      <strong>Address:</strong> {visitor.visitorAddress.line1.substring(0,12)}, {visitor.visitorAddress.city}
-                    </Card.Text>
-                    <Card.Text>
-                      <strong>Status:</strong>
+
+          {/* TABLE */}
+          <div className="table-responsive">
+            <table className="table table-hover align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Contact</th>
+                  <th>Address</th>
+                  <th>Status</th>
+                  <th className="text-center">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {result.data.map((visitor) => (
+                  <tr key={visitor.id}>
+                    {/* Image */}
+                    <td>
+                      <img
+                        src={
+                          visitor.visitorImage
+                            ? `http://localhost:8080/api/v1/file/image-by-name/${visitor.visitorImage}`
+                            : defaultImage
+                        }
+                        alt="Visitor"
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </td>
+
+                    {/* Name */}
+                    <td className="fw-bold">{visitor.visitorName}</td>
+
+                    {/* Contact */}
+                    <td>{visitor.visitorContact}</td>
+
+                    {/* Address */}
+                    <td>
+                      {visitor.visitorAddress?.line1?.substring(0, 12)},{" "}
+                      {visitor.visitorAddress?.city}
+                    </td>
+
+                    {/* Status */}
+                    <td>
                       {visitor.banStatus ? (
                         <span className="text-danger">
                           Banned on {visitor.banStatus.bannedOn}
@@ -254,19 +285,25 @@ function SearchPage() {
                       ) : (
                         <span className="text-success">Active</span>
                       )}
-                    </Card.Text>
-                    <button className="view-details-btn" onClick={() => viewVisitorProfile(visitor.id)}>
-                      View Details
-                    </button>
-                  </Card.Body>
-                </Card>
-              </div>
-            ))}
+                    </td>
+
+                    {/* Action */}
+                    <td className="text-center">
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => viewVisitorProfile(visitor.id)}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Pagination */}
-          <div className="pagination-container">
-            {/* Previous Button */}
+          {/* PAGINATION */}
+          <div className="pagination-container mt-3">
             <button
               className="pagination-btn"
               disabled={result.pageNo === 0}
@@ -275,21 +312,24 @@ function SearchPage() {
               Previous
             </button>
 
-            {/* Page Numbers */}
             {[...Array(result.totalPages).keys()].map((page) => (
               <button
-                key={page + 1}
-                className={`page-number-btn ${result.pageNo === page ? 'active' : ''}`}
+                key={page}
+                className={`page-number-btn ${
+                  result.pageNo === page ? "active" : ""
+                }`}
                 onClick={() => handlePageChange(page)}
               >
                 {page + 1}
               </button>
             ))}
 
-            {/* Next Button */}
             <button
               className="pagination-btn"
-              disabled={result.pageNo + 1 === result.totalPages || result.totalData === 0}
+              disabled={
+                result.pageNo + 1 === result.totalPages ||
+                result.totalData === 0
+              }
               onClick={() => handlePageChange(result.pageNo + 1)}
             >
               Next

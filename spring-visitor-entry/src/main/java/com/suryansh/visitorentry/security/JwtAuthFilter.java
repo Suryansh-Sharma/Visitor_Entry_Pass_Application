@@ -44,6 +44,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = null;
         String userId = null;
         try{
+            // ✅ 1. Skip WebSocket handshake requests
+            String upgrade = request.getHeader("Upgrade");
+            if ("websocket".equalsIgnoreCase(upgrade)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             // Extract token from the Authorization header
             String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {

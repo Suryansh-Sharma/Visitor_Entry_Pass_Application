@@ -11,6 +11,7 @@ import { VisitorEntryPassContext } from "../context/VisitorEntryPassContext";
 import "../css/Navbar.css";
 import { LOGOUT_USER } from "../graphQl/queries";
 import LoadingPage from "./LoadingPage";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const [logoutUser, { loading }] = useMutation(LOGOUT_USER, {
@@ -36,8 +37,6 @@ const Header = () => {
       const u = JSON.parse(localStorage.getItem("userInfo"));
       const refreshToken = u?.credentials?.refreshToken?.token;
       const jwtToken = `Bearer ${token}`;
-      console.log("Jwt Token", jwtToken);
-      console.log("Refresh Token", refreshToken);
       await logoutUser({
         variables: {
           authorization: jwtToken,
@@ -88,18 +87,19 @@ const Header = () => {
       <div className="navBarContainer">
         {/* Left (Navigation Icons) */}
         <div className="desktopOptionNav">
-          <div
+          <Link
+            to={`/visits-by-date/${formatedTodayDate()}?page_no=0&page_size=8&sort_by=visitedOn&sort_order=ASC`}
             className="navItem"
-            onClick={() =>
-              navigate(
-                `/visits-by-date/${formatedTodayDate()}?page_no=0&page_size=8&sort_by=visitedOn&sort_order=ASC`
-              )
-            }
           >
             <HiOutlineHome size={25} className="navIcon" />
-          </div>
+          </Link>
 
-          <div className="navItem" onClick={() => navigate("/add-visit")}>
+          <div
+            className="navItem"
+            onClick={() => {
+              window.location.href = "#/add-visit";
+            }}
+          >
             <GrAddCircle size={25} className="navIcon" />
           </div>
 
@@ -107,7 +107,7 @@ const Header = () => {
             className="navItem"
             onClick={() =>
               navigate(
-                "/search/visitor/Name/none?page_no=0&page_size=8&sort_by=visitorName&sort_dir=ASC"
+                "/search/visitor/Name/none?page_no=0&page_size=8&sort_by=visitorName&sort_dir=ASC",
               )
             }
           >
@@ -117,7 +117,7 @@ const Header = () => {
           <div
             className="navItem"
             onClick={() => {
-              window.location.reload();
+              window.location.href = "/"; // Navigate to base URL
             }}
           >
             <TfiReload size={25} className="navIcon" />
@@ -157,7 +157,7 @@ const Header = () => {
           <div
             onClick={() =>
               navigate(
-                `/visits-by-date/${formatedTodayDate()}?page_no=0&page_size=8&sort_by=visitedOn&sort_order=ASC`
+                `/visits-by-date/${formatedTodayDate()}?page_no=0&page_size=8&sort_by=visitedOn&sort_order=ASC`,
               )
             }
             className="mobileMenuItem"
@@ -175,7 +175,7 @@ const Header = () => {
           <div
             onClick={() =>
               navigate(
-                "/search/visitor/Name/none?page_no=0&page_size=8&sort_by=visitorName&sort_dir=ASC"
+                "/search/visitor/Name/none?page_no=0&page_size=8&sort_by=visitorName&sort_dir=ASC",
               )
             }
             className="mobileMenuItem"

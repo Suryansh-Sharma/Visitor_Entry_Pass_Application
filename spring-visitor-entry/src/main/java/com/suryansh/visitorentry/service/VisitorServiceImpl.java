@@ -39,6 +39,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
@@ -50,6 +51,7 @@ import java.util.regex.Pattern;
  */
 @Service
 public class VisitorServiceImpl implements VisitorService {
+
     private static final Logger logger = LoggerFactory.getLogger(VisitorServiceImpl.class);
     private final VisitRepository visitRepository;
     private final VisitingRecordRepo visitingRecordRepo;
@@ -58,9 +60,7 @@ public class VisitorServiceImpl implements VisitorService {
     private final MapperService mapperService;
     private final FileService fileService;
 
-    public VisitorServiceImpl(VisitRepository visitRepository, VisitingRecordRepo visitingRecordRepo,
-                              MongoTemplate mongoTemplate, TelegramService telegramService,
-                              MapperService mapperService, FileService fileService) {
+    public VisitorServiceImpl(VisitRepository visitRepository, VisitingRecordRepo visitingRecordRepo, MongoTemplate mongoTemplate, TelegramService telegramService, MapperService mapperService, FileService fileService) {
         this.visitRepository = visitRepository;
         this.visitingRecordRepo = visitingRecordRepo;
         this.mongoTemplate = mongoTemplate;
@@ -72,54 +72,38 @@ public class VisitorServiceImpl implements VisitorService {
     @Override
     @Transactional
     @Async
-    @CacheEvict(value = "visitsOnSpecificDate",allEntries = true)
+    @CacheEvict(value = "visitsOnSpecificDate", allEntries = true)
     public CompletableFuture<String> addNewVisitInDb(VisitModel visitModel) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                Optional<VisitorDoc> visitDocumentOptional = visitRepository.findByVisitorContact(visitModel.getVisitorContact());
-                VisitorDoc visitorDoc = visitDocumentOptional.orElse(new VisitorDoc());
-                if (visitDocumentOptional.isPresent()) {
-                    if (visitorDoc.getBanStatus() != null && visitorDoc.getBanStatus().getIsVisitorBanned()) {
-                        throw new SpringVisitorException(
-                                "Visitor " + visitorDoc.getVisitorName() + " is banned on " + visitorDoc.getBanStatus().getBannedOn(),
-                                ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST
-                        );
+                Optional<VisitorDoc> visitorOptional = visitRepository.findByVisitorContact(visitModel.getVisitorContact());
+                VisitorDoc visitorDoc;
+                if (visitorOptional.isPresent()) {
+                    visitorDoc = visitorOptional.get();
+                    if (visitorDoc.getBanStatus() != null && Boolean.TRUE.equals(visitorDoc.getBanStatus().getIsVisitorBanned())) {
+                        throw new SpringVisitorException("Visitor " + visitorDoc.getVisitorName() + " is banned on " + visitorDoc.getBanStatus().getBannedOn(), ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
                     }
-                }else {
-                    if (!fileService.checkFileExist(visitModel.getVisitorImage())){
-                        throw new SpringVisitorException("Image "+visitModel.getVisitorImage()+" does not exist !!, Add image first ",
-                                ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                } else {
+                    if (!fileService.checkFileExist(visitModel.getVisitorImage())) {
+                        throw new SpringVisitorException("Image " + visitModel.getVisitorImage() + " does not exist !! Add image first", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
                     }
                     visitorDoc = mapperService.mapVisitModelToDoc(visitModel);
                     visitorDoc = visitRepository.save(visitorDoc);
                 }
-
                 VisitingRecordDoc visitingRecordDoc = mapperService.mapVisitingRecordModelToDoc(visitModel.getVisitingRecord());
-
-                visitDocumentOptional
-                        .ifPresent(document -> visitingRecordDoc.setVisitorId(document.getId()));
-                if (visitDocumentOptional.isEmpty()) {
-                    visitingRecordDoc.setVisitorId(visitorDoc.getId());
-                }
-
+                visitingRecordDoc.setVisitorId(visitorDoc.getId());
                 ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
                 visitingRecordDoc.setVisitedOn(nowInIndia.toInstant());
-                visitingRecordRepo.save(visitingRecordDoc);
-                TelegramMessageDto telegramMessage = new TelegramMessageDto(
-                        visitModel.getVisitorContact(), visitModel.getVisitorName(),
-                        visitModel.getVisitingRecord().getReason(), visitModel.getVisitorImage(),
-                        visitModel.getVisitingRecord().getVisitorHost(),
-                        visitModel.getVisitorAddress().getCity(), visitModel.getVisitorAddress().getLine1(), visitModel.getVisitorAddress().getPinCode()
-                );
+                visitingRecordDoc = visitingRecordRepo.save(visitingRecordDoc);
+                TelegramMessageDto telegramMessage = new TelegramMessageDto(visitingRecordDoc.getId(), visitModel.getVisitorContact(), visitModel.getVisitorName(), visitModel.getVisitingRecord().getReason(), visitModel.getVisitorImage(), visitModel.getVisitingRecord().getVisitorHost(), visitModel.getVisitorAddress().getCity(), visitModel.getVisitorAddress().getLine1(), visitModel.getVisitorAddress().getPinCode());
                 telegramService.sendVisitMessageToHost(telegramMessage);
-
-                logger.info("New Visit is added for user {} to {} :addNewVisitPersonNotPresent",
-                        visitModel.getVisitorName(), visitModel.getVisitingRecord().getVisitorHost());
-                return "Visit is successfully added for user " + visitModel.getVisitorName();
+                logger.info("New Visit added for {} to {}", visitModel.getVisitorName(), visitModel.getVisitingRecord().getVisitorHost());
+                return "Visit successfully added for user " + visitModel.getVisitorName();
+            } catch (SpringVisitorException e) {
+                throw e;
             } catch (Exception e) {
-                logger.error("Unable to add new visit :addNewVisitPersonNotPresent {}", e.toString());
-                throw new SpringVisitorException("Unable to add new visit," + e.getMessage(), ErrorType.INTERNAL_ERROR,
-                        HttpStatus.INTERNAL_SERVER_ERROR);
+                logger.error("Unable to add new visit {}", e.getMessage(), e);
+                throw new SpringVisitorException("Unable to add new visit, " + e.getMessage(), ErrorType.INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         });
     }
@@ -133,10 +117,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
         VisitorDoc visitorDoc = visitorDocOptional.get();
         if (visitorDoc.getBanStatus() != null && visitorDoc.getBanStatus().getIsVisitorBanned()) {
-            throw new SpringVisitorException(
-                    "Visitor " + visitorDoc.getVisitorName() + " is already banned since " + visitorDoc.getBanStatus().getBannedOn(),
-                    ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST
-            );
+            throw new SpringVisitorException("Visitor " + visitorDoc.getVisitorName() + " is already banned since " + visitorDoc.getBanStatus().getBannedOn(), ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
         }
         // Set the ban status
         VisitorDoc.BanStatus banStatus = new VisitorDoc.BanStatus();
@@ -170,39 +151,25 @@ public class VisitorServiceImpl implements VisitorService {
         Query query = new Query();
         query.addCriteria(Criteria.where("visitorContact").is(visitorContact));
         // Include specific fields you want to retrieve
-        query.fields()
-                .include("_id")
-                .include("visitorContact")
-                .include("visitorName")
-                .include("visitorImage")
-                .include("hasChildrenInSchool")
-                .include("lastVisitedOn")
-                .include("banStatus")
-                .include("visitorAddress")
-                .include("visitorChildren");
+        query.fields().include("_id").include("visitorContact").include("visitorName").include("visitorImage").include("hasChildrenInSchool").include("lastVisitedOn").include("banStatus").include("visitorAddress").include("visitorChildren");
 
         VisitorDoc visitDocument = mongoTemplate.findOne(query, VisitorDoc.class);
         if (visitDocument == null) {
-            throw new SpringVisitorException("Unable to find visitor with contact:- " + visitorContact, ErrorType.NOT_FOUND
-                    , HttpStatus.NOT_FOUND);
+            throw new SpringVisitorException("Unable to find visitor with contact:- " + visitorContact, ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         return mapperService.mapVisitEntityToDto(visitDocument);
     }
 
     @Override
     public VisitorDto getVisitorById(String visitorId) {
-        VisitorDoc visitorDoc = visitRepository.findById(visitorId)
-                .orElseThrow(()->new SpringVisitorException("Unable to find visitor with id:- " + visitorId, ErrorType.NOT_FOUND
-                        , HttpStatus.NOT_FOUND));
+        VisitorDoc visitorDoc = visitRepository.findById(visitorId).orElseThrow(() -> new SpringVisitorException("Unable to find visitor with id:- " + visitorId, ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND));
         return mapperService.mapVisitEntityToDto(visitorDoc);
     }
 
     @Override
     public VisitorDto handleUpdateVisitorProfile(VisitorDoc model) {
         // Fetch the existing visitor document from the repository
-        VisitorDoc visitorDoc = visitRepository.findById(model.getId())
-                .orElseThrow(() -> new SpringVisitorException("Unable to find visitor with id: " + model.getId(),
-                        ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND));
+        VisitorDoc visitorDoc = visitRepository.findById(model.getId()).orElseThrow(() -> new SpringVisitorException("Unable to find visitor with id: " + model.getId(), ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND));
 
         // Update the visitor information
         visitorDoc.setVisitorContact(model.getVisitorContact());
@@ -244,27 +211,20 @@ public class VisitorServiceImpl implements VisitorService {
                 case "visitorHost":
                     break;
                 default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'visitedOn, visitorHost or null",
-                            ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                    throw new SpringVisitorException("Invalid Sort By field. Include only 'visitedOn, visitorHost or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
         }
         Pageable pageable;
-        if (sortBy!=null){
+        if (sortBy != null) {
             Sort.Direction direction = (sortOrder == null) ? Sort.Direction.ASC : Sort.Direction.valueOf(sortOrder);
             pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
-        }else {
+        } else {
             pageable = PageRequest.of(pageNumber, pageSize);
         }
         Page<VisitingRecordDoc> visitingRecordPage = visitingRecordRepo.findAllByVisitorId(id, pageable);
 
         // Construct and return the PaginationDto
-        return new VisitingRecordPage(
-                pageNumber,
-                visitingRecordPage.getTotalPages(),
-                visitingRecordPage.getContent(),
-                pageSize,
-                visitingRecordPage.getTotalElements()
-        );
+        return new VisitingRecordPage(pageNumber, visitingRecordPage.getTotalPages(), visitingRecordPage.getContent(), pageSize, visitingRecordPage.getTotalElements());
     }
 
     @Override
@@ -278,8 +238,7 @@ public class VisitorServiceImpl implements VisitorService {
                 case "visitorName":
                     break;
                 default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName' or null",
-                            ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName' or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
         }
 
@@ -289,8 +248,7 @@ public class VisitorServiceImpl implements VisitorService {
             startDay = date.atStartOfDay();
             endDay = date.plusDays(1).atStartOfDay();
         } catch (DateTimeParseException e) {
-            throw new SpringVisitorException("Invalid Date format. Use 'yyyy-MM-dd'.",
-                    ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+            throw new SpringVisitorException("Invalid Date format. Use 'yyyy-MM-dd'.", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
         }
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
         return getVisitorInRange(startDay, endDay, pageable, sortBy, sortOrder);
@@ -298,8 +256,7 @@ public class VisitorServiceImpl implements VisitorService {
 
 
     @Override
-    public VisitingRecordPage searchVisitor(List<SearchFilter> filters, int pageSize, int pageNumber,
-                                            String sortBy, String sortOrder) {
+    public VisitingRecordPage searchVisitor(List<SearchFilter> filters, int pageSize, int pageNumber, String sortBy, String sortOrder) {
 //        logger.info("Filter {} ", filters.toString());
         if (sortBy != null) {
             switch (sortBy) {
@@ -308,16 +265,15 @@ public class VisitorServiceImpl implements VisitorService {
                 case "visitorName":
                     break;
                 default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName' or null",
-                            ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName' or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
         }
-        Pageable pageable ;
-        if (sortBy!=null){
+        Pageable pageable;
+        if (sortBy != null) {
             Sort.Direction direction = (sortOrder == null) ? Sort.Direction.ASC : Sort.Direction.valueOf(sortOrder);
             pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
-        }else{
-           pageable = PageRequest.of(pageNumber, pageSize);
+        } else {
+            pageable = PageRequest.of(pageNumber, pageSize);
         }
 
         Query query = new Query().with(pageable);
@@ -330,12 +286,7 @@ public class VisitorServiceImpl implements VisitorService {
                     query.addCriteria(Criteria.where("visitorContact").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE)));
                     break;
                 case "Address": {
-                    query.addCriteria(
-                            new Criteria().orOperator(
-                                    Criteria.where("visitorAddress.line1").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE)),
-                                    Criteria.where("visitorAddress.city").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE))
-                            )
-                    );
+                    query.addCriteria(new Criteria().orOperator(Criteria.where("visitorAddress.line1").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE)), Criteria.where("visitorAddress.city").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE))));
                     break;
                 }
 
@@ -348,30 +299,12 @@ public class VisitorServiceImpl implements VisitorService {
                     break;
                 }
                 default:
-                    throw new SpringVisitorException("Invalid filter key: Only Name, Contact, Address, ChildName are allowed!",
-                            ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                    throw new SpringVisitorException("Invalid filter key: Only Name, Contact, Address, ChildName are allowed!", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
         });
-        query.fields()
-                .include("_id")
-                .include("visitorContact")
-                .include("visitorName")
-                .include("visitorImage")
-                .include("banStatus")
-                .include("visitorAddress")
-                .include("visitorChildren")
-        ;
-        Page<VisitorDoc> visitDocumentPage = PageableExecutionUtils.getPage(
-                mongoTemplate.find(query, VisitorDoc.class
-                ), pageable, () -> mongoTemplate.count(query.skip(0).limit(0), VisitorDoc.class)
-        );
-        return new VisitingRecordPage(
-                pageNumber,
-                visitDocumentPage.getTotalPages(),
-                visitDocumentPage.getContent(),
-                pageSize,
-                visitDocumentPage.getTotalElements()
-        );
+        query.fields().include("_id").include("visitorContact").include("visitorName").include("visitorImage").include("banStatus").include("visitorAddress").include("visitorChildren");
+        Page<VisitorDoc> visitDocumentPage = PageableExecutionUtils.getPage(mongoTemplate.find(query, VisitorDoc.class), pageable, () -> mongoTemplate.count(query.skip(0).limit(0), VisitorDoc.class));
+        return new VisitingRecordPage(pageNumber, visitDocumentPage.getTotalPages(), visitDocumentPage.getContent(), pageSize, visitDocumentPage.getTotalElements());
     }
 
     @Override
@@ -382,10 +315,8 @@ public class VisitorServiceImpl implements VisitorService {
             fromDate = LocalDate.parse(from).atStartOfDay();
             toDate = LocalDate.parse(to).atStartOfDay().plusDays(1);
         } catch (DateTimeParseException e) {
-            throw new SpringVisitorException("Invalid Date format. Use 'yyyy-MM-dd'.",
-                    ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+            throw new SpringVisitorException("Invalid Date format. Use 'yyyy-MM-dd'.", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
         }
-
         if (sortBy != null) {
             switch (sortBy) {
                 case "id":
@@ -394,8 +325,7 @@ public class VisitorServiceImpl implements VisitorService {
                 case "visitedOn":
                     break;
                 default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName, visitedOn' or null",
-                            ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName, visitedOn' or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
         }
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
@@ -404,54 +334,33 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     private PaginationDto getVisitorInRange(LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable, String sortBy, String sortOrder) {
-        long totalRecords = mongoTemplate.count(
-                Query.query(Criteria.where("visitedOn").gte(fromDate).lt(toDate)
-                        .and("visitorId").ne(null)),
-                "Visiting_Record"
-        );
+        long totalRecords = mongoTemplate.count(Query.query(Criteria.where("visitedOn").gte(fromDate).lt(toDate).and("visitorId").ne(null)), "Visiting_Record");
         int totalPages = (int) Math.ceil((double) totalRecords / pageable.getPageSize());
         // Build the aggregation pipeline
         List<AggregationOperation> operations = new ArrayList<>();
         operations.add(Aggregation.match(Criteria.where("visitedOn").gte(fromDate).lt(toDate)));
-
         // Match for non-null visitor IDs
         operations.add(Aggregation.match(Criteria.where("visitorId").ne(null)));
         // Convert 'visitorId' to ObjectId for lookup
-        operations.add(Aggregation.addFields()
-                .addField("visitorObjId")
-                .withValue(ConvertOperators.ToObjectId.toObjectId("$visitorId"))
-                .build());
-
+        operations.add(Aggregation.addFields().addField("visitorObjId").withValue(ConvertOperators.ToObjectId.toObjectId("$visitorId")).build());
         // Lookup operation to join with the 'Visit_Document' collection
         operations.add(Aggregation.lookup("Visitor_Document", "visitorObjId", "_id", "visitorInfo"));
-
         // Unwind the visitorInfo array to flatten the structure
         operations.add(Aggregation.unwind("visitorInfo", true));
-
         // Sort stage
         if (sortBy != null && sortOrder != null) {
             Sort.Direction direction = "desc".equalsIgnoreCase(sortOrder) ? Sort.Direction.DESC : Sort.Direction.ASC;
             operations.add(Aggregation.sort(direction.equals(Sort.Direction.ASC) ? Sort.by(sortBy) : Sort.by(sortBy).descending()));
         }
-
         // Pagination stage
         operations.add(Aggregation.skip((long) pageable.getPageSize() * pageable.getPageNumber()));
         operations.add(Aggregation.limit(pageable.getPageSize()));
-
         // Create the aggregation
         Aggregation aggregation = Aggregation.newAggregation(operations);
         // Execute the aggregation
-        AggregationResults<VisitingRecordWithVisitorInfo> results =
-                mongoTemplate.aggregate(aggregation, "Visiting_Record", VisitingRecordWithVisitorInfo.class);
-
-
-        return new PaginationDto(
-                pageable.getPageNumber(),
-                totalPages,
-                results.getMappedResults(),
-                pageable.getPageSize(),
-                (int) totalRecords
-        );
+        AggregationResults<VisitingRecordWithVisitorInfo> results = mongoTemplate.aggregate(aggregation, "Visiting_Record", VisitingRecordWithVisitorInfo.class);
+        return new PaginationDto(pageable.getPageNumber(), totalPages, results.getMappedResults(), pageable.getPageSize(), (int) totalRecords);
     }
+
 
 }

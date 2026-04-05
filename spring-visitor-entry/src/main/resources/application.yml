@@ -3,14 +3,16 @@ spring:
     timeout-per-shutdown-phase: 30s
   config:
     import: optional:classpath:secret-application.yml
-  graphql:
-    graphiql:
-      enabled: true
-    cors:
-      allow-credentials: true
-      allowed-origins:
-        - http://192.168.0.191:3000/
-        - http://localhost:3000/
+  spring:
+    graphql:
+      path: /graphql
+      websocket:
+        path: /graphql
+  #    cors:
+#      allow-credentials: true
+#      allowed-origins:
+#        - http://192.168.0.191:3000
+#        - http://localhost:3000
   data:
     mongodb:
       uri: mongodb://localhost:27017/visitor-entry-pass
@@ -24,8 +26,6 @@ spring:
 logging:
   level:
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
-
 server:
   shutdown: graceful
-
 expiration_time: "30"

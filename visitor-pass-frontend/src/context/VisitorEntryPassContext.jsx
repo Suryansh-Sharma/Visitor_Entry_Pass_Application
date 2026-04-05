@@ -2,15 +2,15 @@ import { useLazyQuery } from "@apollo/client";
 import { createContext, useEffect, useState } from "react";
 import LoadingPage from "../components/LoadingPage";
 import { GET_ALL_TELEGRAM_IDS } from "../graphQl/queries";
-import { get } from "lodash";
 
 export const VisitorEntryPassContext = createContext();
 
 const Context = ({ children }) => {
-
-
   const baseUrl = "http://localhost:8080/";
-  const [getAllTelegramId, { loading }] = useLazyQuery(GET_ALL_TELEGRAM_IDS,{fetchPolicy:'network-only'});
+  const ReactBaseUrl = "http://localhost:3000/";
+  const [getAllTelegramId, { loading }] = useLazyQuery(GET_ALL_TELEGRAM_IDS, {
+    fetchPolicy: "network-only",
+  });
 
   const [isLogin, setIsLogin] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
@@ -25,7 +25,6 @@ const Context = ({ children }) => {
   }, []);
 
   const fetchTelegramIds = async () => {
-    
     try {
       const response = await getAllTelegramId();
       const error = response.error;
@@ -54,11 +53,11 @@ const Context = ({ children }) => {
       return null;
     } else {
       setUserInfo(userInfo);
-      sessionStorage.setItem("jwtToken", JSON.stringify(userInfo.credentials.jwtToken.token));
+      sessionStorage.setItem("jwtToken", userInfo.credentials.jwtToken.token);
       return userInfo;
     }
   };
-  
+
   if (loading) {
     return <LoadingPage />;
   }
@@ -66,6 +65,7 @@ const Context = ({ children }) => {
   return (
     <VisitorEntryPassContext.Provider
       value={{
+        ReactBaseUrl,
         baseUrl,
         isLogin,
         setIsLogin,

@@ -29,7 +29,7 @@ function AddVisit() {
     ADD_NEW_VISIT,
     {
       fetchPolicy: "no-cache",
-    }
+    },
   );
   const [getVisitorByContact, { loading: getVisitorByContactLoading }] =
     useLazyQuery(GET_VISITOR_BY_CONTACT, { fetchPolicy: "no-cache" });
@@ -51,7 +51,7 @@ function AddVisit() {
       await navigator.mediaDevices.getUserMedia({ video: true });
       const deviceList = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = deviceList.filter(
-        (device) => device.kind === "videoinput"
+        (device) => device.kind === "videoinput",
       );
       setDevices(videoDevices);
       if (videoDevices.length > 1) {
@@ -122,7 +122,7 @@ function AddVisit() {
     } else if (name === "visitorContact" && value.length > 10) {
       handleToastNotification(
         "isError",
-        "Contact can't be greater than 10 digit"
+        "Contact can't be greater than 10 digit",
       );
       return;
     }
@@ -175,7 +175,7 @@ function AddVisit() {
 
   const removeRow = (index) => {
     SetVisitorChildren((prevChildren) =>
-      prevChildren.filter((_, i) => i !== index)
+      prevChildren.filter((_, i) => i !== index),
     );
   };
 
@@ -204,7 +204,7 @@ function AddVisit() {
       MySwal.fire({
         title: <p>Visitor is banned !!</p>,
         text: `Visitor ${visitorInfo.visitorName} is banned on ${formatDate(
-          banStatus.bannedOn
+          banStatus.bannedOn,
         )} due to reason:- ${banStatus.reason}`,
         icon: "error",
         confirmButtonColor: "#218838",
@@ -274,7 +274,7 @@ function AddVisit() {
       if (visitorChildren.length === 0) {
         isValid = false;
         errors.push(
-          "Is Parent of School Children without children entries !! "
+          "Is Parent of School Children without children entries !! ",
         );
       }
       visitorChildren.forEach((child, index) => {
@@ -351,7 +351,7 @@ function AddVisit() {
 
       handleToastNotification(
         "isSuccess",
-        `Info of ${data.visitorName} found!`
+        `Info of ${data.visitorName} found!`,
       );
       if (data.banStatus) {
         SetBanStatus(data.banStatus);
@@ -381,7 +381,7 @@ function AddVisit() {
     try {
       await axios.get(
         `http://localhost:8080/api/v1/file/image-by-name/${imageName}`,
-        { responseType: "arraybuffer" }
+        { responseType: "arraybuffer" },
       );
       setShowImgSec(false);
     } catch (error) {
@@ -410,7 +410,7 @@ function AddVisit() {
       visitingRecord: {
         reason: visitingRecord.reason,
         visitorHost: visitingRecord.visitorHost,
-        status: "COMPLETED",
+        status: "PENDING",
       },
     };
 
@@ -446,14 +446,14 @@ function AddVisit() {
     const formData = new FormData();
     formData.append(
       "image",
-      dataURItoBlob(capturedImage, visitorInfo.visitorImage)
+      dataURItoBlob(capturedImage, visitorInfo.visitorImage),
     );
 
     axios
       .post(
         "http://localhost:8080/api/v1/file/new-image/" +
           visitorInfo.visitorImage,
-        formData
+        formData,
       )
       .then(() => {
         console.log("Image added successfully");
@@ -662,7 +662,7 @@ function AddVisit() {
                         handleChildInputChange(
                           index,
                           "standard",
-                          e.target.value
+                          e.target.value,
                         )
                       }
                     >

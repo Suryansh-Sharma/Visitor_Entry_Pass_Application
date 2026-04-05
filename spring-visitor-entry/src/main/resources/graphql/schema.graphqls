@@ -1,5 +1,8 @@
 scalar LocalDateTime
 scalar LocalDate
+type Subscription {
+    notifyVisitStatusSubscription: NotifyVisitStatus
+}
 type Query {
     getVisit(id: ID!): String
 
@@ -16,6 +19,7 @@ type Query {
     getVisitorsOnPeriod(from_date:String!,to_date:String!,page_size:Int=10,page_number:Int=0,,sort_by:String,sort_order:SortDirection):PagingVisitDto
 
     getAllTelegramIds:[TelegramIdDto]
+
 }
 type Mutation {
     addNewTelegramId(input:TelegramIdModel!):String
@@ -45,6 +49,7 @@ type Mutation {
     handleLogout(authorization: String!,refreshToken:String!):String
 
     forgetPassword(username:String!):String
+    testTelegram(id:String!):String
 }
 
 # Input Model
@@ -233,4 +238,8 @@ type TelegramIdDto {
     role:String
     hostName:String
     dateOfJoin:LocalDateTime
+}
+type NotifyVisitStatus {
+    visitId: String
+    visitStatus: String
 }

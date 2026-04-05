@@ -58,103 +58,119 @@ function VisitorProfile() {
     return <div></div>;
   }
   return (
-    <div>
-      <div className="m-2 d-flex">
-        <button className="btn btn-outline-dark" onClick={() => {
-          navigate(-1);
-        }}>Go Back</button>
-      </div>
-      <div className="container mt-5">
-        <Card className=" shadow-lg border-0 rounded-lg overflow-hidden">
-          <div className="row no-gutters">
-            {/* Image Section */}
-            <div className="col-md-4">
-              <Card.Img
-                variant="top"
-                src={`http://localhost:8080/api/v1/file/image-by-name/${visitor.visitorImage}`}
-                alt="Visitor Image"
-                className="img-fluid rounded-circle p-3"
-              />
-            </div>
+    <div className="container py-4">
+      {/* Back Button */}
+      <button
+        className="btn btn-light border mb-4"
+        onClick={() => navigate(-1)}
+      >
+        ← Go Back
+      </button>
 
-            {/* Content Section */}
-            <div className="col-md-8">
-              <Card.Body className="p-4">
-                <Card.Title className="h3 font-weight-bold text-dark mb-3">
-                  {visitor.visitorName}
-                </Card.Title>
-
-                {/* Contact Info */}
-                <Card.Text className="text-muted mb-2">
-                  <strong>Contact:</strong> {visitor.visitorContact}
-                </Card.Text>
-
-                {/* Address Info */}
-                <Card.Text className="text-muted mb-2">
-                  <strong>Address:</strong> {visitor.visitorAddress.line1},{" "}
-                  {visitor.visitorAddress.city} -{" "}
-                  {visitor.visitorAddress.pinCode}
-                </Card.Text>
-
-                {/* Ban Status Info */}
-                {visitor.banStatus != null &&
-                  visitor.banStatus.isVisitorBanned && (
-                    <Card.Text className="text-danger mb-2">
-                      <strong>Status:</strong> Banned (
-                      {visitor.banStatus.reason})
-                      <br />
-                      <strong>Banned On:</strong>{" "}
-                      {new Date(
-                        visitor.banStatus.bannedOn
-                      ).toLocaleDateString()}
-                    </Card.Text>
-                  )}
-
-                {/* Has Children in School */}
-                <Card.Text className="text-muted mb-3">
-                  <strong>Has Children in School:</strong>{" "}
-                  {visitor.hasChildrenInSchool ? "Yes" : "No"}
-                </Card.Text>
-
-                {/* Visitor Children Details (If any) */}
-                {visitor.hasChildrenInSchool &&
-                  visitor.visitorChildren.length > 0 && (
-                    <div>
-                      <strong>Children:</strong>
-                      <ul className="list-unstyled">
-                        {visitor.visitorChildren.map((child, index) => (
-                          <li key={index} className="text-muted">
-                            {child.name} - Standard {child.standard}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                {/* View Details Button */}
-                <div className="d-flex flex-row justify-content-between">
-                  <button
-                    variant="primary"
-                    className="btn btn-primary btn-lg px-4 py-2 mt-3"
-                    onClick={handleNavigation}
-                  >
-                    View Visiting Record
-                  </button>
-
-                  <button
-                    variant="primary"
-                    className="btn btn-warning btn-lg px-4 py-2 mt-3"
-                    onClick={() => {
-                      navigate(`/update-visitor-profile/${id}`);
-                    }}
-                  >
-                    Update Profile
-                  </button>
-                </div>
-              </Card.Body>
-            </div>
+      <div className="card shadow-lg border-0 rounded-4 p-4">
+        {/* TOP SECTION */}
+        <div className="d-flex align-items-center gap-4 flex-wrap">
+          {/* Profile Image */}
+          <div>
+            <img
+              src={`http://localhost:8080/api/v1/file/image-by-name/${visitor.visitorImage}`}
+              alt="Visitor"
+              style={{
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "4px solid #f1f1f1",
+              }}
+            />
           </div>
-        </Card>
+
+          {/* Basic Info */}
+          <div className="flex-grow-1">
+            <h3 className="fw-bold mb-1">{visitor.visitorName}</h3>
+
+            <p className="text-muted mb-1">📞 {visitor.visitorContact}</p>
+
+            <p className="text-muted mb-2">
+              📍 {visitor.visitorAddress.line1}, {visitor.visitorAddress.city} -{" "}
+              {visitor.visitorAddress.pinCode}
+            </p>
+
+            {/* Status Badge */}
+            {visitor.banStatus?.isVisitorBanned ? (
+              <span className="badge bg-danger px-3 py-2">Banned</span>
+            ) : (
+              <span className="badge bg-success px-3 py-2">Active</span>
+            )}
+          </div>
+        </div>
+
+        <hr />
+
+        {/* DETAILS SECTION */}
+        <div className="row">
+          {/* Left */}
+          <div className="col-md-6 mb-3">
+            <h6 className="text-secondary">Visitor Details</h6>
+
+            <p>
+              <strong>Has Children:</strong>{" "}
+              {visitor.hasChildrenInSchool ? "Yes" : "No"}
+            </p>
+
+            {visitor.banStatus?.isVisitorBanned && (
+              <div className="text-danger">
+                <p>
+                  <strong>Reason:</strong> {visitor.banStatus.reason}
+                </p>
+                <p>
+                  <strong>Banned On:</strong>{" "}
+                  {new Date(visitor.banStatus.bannedOn).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right */}
+          <div className="col-md-6 mb-3">
+            {visitor.hasChildrenInSchool &&
+              visitor.visitorChildren.length > 0 && (
+                <>
+                  <h6 className="text-secondary">Children</h6>
+
+                  <ul className="list-group">
+                    {visitor.visitorChildren.map((child, index) => (
+                      <li
+                        key={index}
+                        className="list-group-item d-flex justify-content-between"
+                      >
+                        <span>{child.name}</span>
+                        <span className="badge bg-primary">
+                          Std {child.standard}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+          </div>
+        </div>
+
+        <hr />
+
+        {/* ACTION BUTTONS */}
+        <div className="d-flex justify-content-between flex-wrap gap-2">
+          <button className="btn btn-primary px-4" onClick={handleNavigation}>
+            📄 View Visiting Record
+          </button>
+
+          <button
+            className="btn btn-warning px-4"
+            onClick={() => navigate(`/update-visitor-profile/${id}`)}
+          >
+            ✏️ Update Profile
+          </button>
+        </div>
       </div>
     </div>
   );

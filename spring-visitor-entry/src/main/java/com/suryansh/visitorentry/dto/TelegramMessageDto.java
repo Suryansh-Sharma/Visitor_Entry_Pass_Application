@@ -13,7 +13,8 @@ package com.suryansh.visitorentry.dto;
  * @param line1          It includes area, colony etc. info of user address.
  * @author suryansh
  */
-public record TelegramMessageDto(String visitorContact,
+public record TelegramMessageDto(String visitId,
+                                 String visitorContact,
                                  String visitorName,
                                  String reason,
                                  String visitorImage,

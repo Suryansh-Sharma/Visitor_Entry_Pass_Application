@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { HashRouter, Route, Routes } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
 import "bootstrap/dist/css/bootstrap.min.css";
+import { useContext, useEffect, useState } from "react";
 import "react-calendar/dist/Calendar.css";
+import { HashRouter, Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import "../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -14,16 +14,18 @@ import Header from "./components/Header";
 import LoadingPage from "./components/LoadingPage";
 import SearchPage from "./components/SearchPage";
 import LoginPage from "./components/Security/LoginPage";
+import PrivateRoute from "./components/Security/PrivateRoute.jsx";
 import SignUp from "./components/SignUp.jsx";
 import TelegramIds from "./components/TelegramIds.jsx";
 import UpdateVisitorProfile from "./components/UpdateVisitorProfile";
 import VisitorProfile from "./components/UserProfile";
 import VisitsOfVisitor from "./components/VisitsOfVisitor.jsx";
-import { VisitorEntryPassContext } from './context/VisitorEntryPassContext.jsx';
-import PrivateRoute from './components/Security/PrivateRoute.jsx';
+import { VisitorEntryPassContext } from "./context/VisitorEntryPassContext.jsx";
+import UserWebSocket from "./components/UserWebSocket.jsx";
 function App() {
-  const {setIsLogin, setUserInfo, getUserInfo } =
-    useContext(VisitorEntryPassContext);
+  const { setIsLogin, setUserInfo, getUserInfo } = useContext(
+    VisitorEntryPassContext,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,12 +38,13 @@ function App() {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>; 
+    return <div>Loading...</div>;
   }
 
   return (
     <div className="MainApp">
       <ToastContainer />
+      <UserWebSocket />
       <HashRouter>
         <Header />
         <Routes>
@@ -107,7 +110,8 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="telegramId" 
+          <Route
+            path="telegramId"
             element={
               <PrivateRoute>
                 <TelegramIds />

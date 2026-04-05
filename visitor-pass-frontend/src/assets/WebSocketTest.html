@@ -1,0 +1,15 @@
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+
+<script>
+  const socket = new SockJS("http://localhost:8080/ws"); // ✅ FIXED
+  const stompClient = Stomp.over(socket);
+
+  stompClient.connect({}, () => {
+    console.log("Connected");
+
+    stompClient.subscribe("/topic/visits", (msg) => {
+      console.log("Received:", JSON.parse(msg.body));
+    });
+  });
+</script>

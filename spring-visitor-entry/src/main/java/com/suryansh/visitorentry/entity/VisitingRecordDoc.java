@@ -21,10 +21,12 @@ public class VisitingRecordDoc {
     private Status status;
     private String note;
     public enum Status {
+        ACCEPTED,
         COMPLETED,
         CANCELLED,
         NOT_AVAILABLE,
         PENDING,
         HOST_NOT_AVAILABLE,
+        REJECTED
     }
 }

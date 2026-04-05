@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * This Controller class is used for register new user, login user.
- * This class in under development, so new features like JWT, Spring-Security etc. will be added soon.
  */
 @Controller
 @CrossOrigin("*")

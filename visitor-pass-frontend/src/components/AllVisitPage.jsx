@@ -1,127 +1,207 @@
-import { useLazyQuery } from "@apollo/client";
-import React, { useEffect, useState } from "react";
+import { useQuery } from "@apollo/client";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
+import { Link } from "react-router-dom";
+import { VisitorEntryPassContext } from "../context/VisitorEntryPassContext";
 import "../css/AllVisit.css";
 import { GET_VISIT_ON_SPECIFIC_DATE } from "../graphQl/queries";
 import LoadingPage from "./LoadingPage";
-import ProfileCard from "./ProfileCard";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
-const NoDataImg = require('../assets/NoDataImg.png');
+const NoDataImg = require("../assets/no-data.png");
 
 function AllVisitPage({ pageTitle }) {
-  const { date } = useParams();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
+  const { ReactBaseUrl } = useContext(VisitorEntryPassContext);
   const today = new Date().toISOString().split("T")[0];
-
-  const [searchQuery, SetSearchQuery] = useState({
-    page_size: parseInt(queryParams.get("page_size")) || 8,
-    page_no: parseInt(queryParams.get("page_no")) || 0,
-    sort_by: queryParams.get("sort_by") || "visitedOn",
-    sort_order: queryParams.get("sort_order") || "DESC",
-  });
-
+  const { date } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [getVisitorOnSpecificDateApi, { loading }] = useLazyQuery(
-    GET_VISIT_ON_SPECIFIC_DATE,
-    {
-      fetchPolicy: "cache-first",
-    }
+  const queryParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
   );
 
-  const [result, SetResult] = useState({
+  const page_size = parseInt(queryParams.get("page_size")) || 8;
+  const page_no = parseInt(queryParams.get("page_no")) || 0;
+  const sort_by = queryParams.get("sort_by") || "visitedOn";
+  const sort_order = queryParams.get("sort_order") || "DESC";
+
+  const [searchDate, setSearchDate] = useState(date || "");
+  const [finalDate, setFinalDate] = useState(date || "");
+
+  // ✅ FETCH DATA FIRST
+  const { data, loading, error, refetch } = useQuery(
+    GET_VISIT_ON_SPECIFIC_DATE,
+    {
+      variables: {
+        date: finalDate,
+        sortBy: sort_by,
+        pageSize: page_size,
+        pageNumber: page_no,
+        sortOrder: sort_order,
+      },
+      fetchPolicy: "network-only",
+    },
+  );
+
+  // ✅ SAFE RESULT
+  const result = data?.getVisitorOnSpecificDate || {
     pageNo: 0,
     pageSize: 0,
     data: [],
     totalData: 0,
     totalPages: 0,
-  });
-
-  useEffect(() => {
-    // console.log(__dirname);
-    document.title = `${date}-All Visit's`;
-    handleFetchData();
-    // alert()
-  }, [date, searchQuery]);
-
-  const handleFetchData = async () => {
-    // console.log(date+" "+page_no+" "+page_size);
-    // console.log(pagination);
-    await getVisitorOnSpecificDateApi({
-      variables: {
-        date: date,
-        sortBy: searchQuery.sort_by,   
-        pageSize: searchQuery.page_size,
-        pageNumber: searchQuery.page_no,
-        sortOrder: searchQuery.sort_order,
-      },
-    })
-      .then((response) => {
-        SetResult(response.data.getVisitorOnSpecificDate);
-      })
-      .catch((e) => {
-        console.log(e);
-      })
-      .then(() => {});
   };
 
-  const handlePageChange = (pageNumber) => {
-    if (pageNumber >= 0 && pageNumber < result.totalPages) {
-      SetSearchQuery((prev) => ({
-        ...prev,
-        page_no: pageNumber,
-      }));
-      const queryParams = new URLSearchParams({
-        page_no: pageNumber,
-        page_size: searchQuery.page_size,
-        sort_by: searchQuery.sort_by,
-        sort_order: searchQuery.sort_order,
-      });
-      navigate(`/visits-by-date/${date}?${queryParams}`, { replace: true });
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  // ✅ LOCAL STATE (REAL-TIME CONTROL)
+  const [liveResult, setLiveResult] = useState(result);
+
+  useEffect(() => {
+    const newData = data?.getVisitorOnSpecificDate;
+
+    if (!newData) return;
+
+    setLiveResult((prev) => {
+      // prevent unnecessary re-render
+      if (JSON.stringify(prev) === JSON.stringify(newData)) {
+        return prev;
+      }
+      return newData;
+    });
+  }, [data]);
+
+  // ✅ Handle URL date change
+  useEffect(() => {
+    if (date) {
+      setFinalDate(date);
+      document.title = `${date} - All Visits`;
     }
+  }, [date]);
+
+  // ✅ WEBSOCKET (REAL-TIME UPDATE)
+  useEffect(() => {
+    const client = new Client({
+      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+
+      onConnect: () => {
+        client.subscribe("/topic/visits", (msg) => {
+          const update = JSON.parse(msg.body);
+
+          console.log("Live Update:", update);
+
+          setLiveResult((prev) => {
+            if (!prev?.data) return prev;
+
+            const exists = prev.data.find((v) => v.visitId === update.visitId);
+
+            // ✅ Only update visible data
+            if (!exists) return prev;
+
+            return {
+              ...prev,
+              data: prev.data.map((v) =>
+                v.visitId === update.visitId ? { ...v, ...update } : v,
+              ),
+            };
+          });
+        });
+      },
+    });
+
+    client.activate();
+
+    return () => client.deactivate();
+  }, []);
+
+  // ✅ HANDLERS
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber < 0 || pageNumber >= liveResult.totalPages) return;
+
+    const params = new URLSearchParams({
+      page_no: pageNumber,
+      page_size,
+      sort_by,
+      sort_order,
+    });
+
+    navigate(`/visits-by-date/${finalDate}?${params}`);
+
+    refetch({
+      date: finalDate,
+      pageNumber,
+      pageSize: page_size,
+      sortBy: sort_by,
+      sortOrder: sort_order,
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDateSubmit = (e) => {
+    e.preventDefault();
+    if (searchDate) {
+      navigate(
+        `/visits-by-date/${searchDate}?page_no=0&page_size=${page_size}`,
+      );
+    }
+  };
+
+  const formatDate = (isoDateStr) => {
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    }).format(new Date(isoDateStr));
   };
 
   const handleDateChange = (event) => {
-    const {value } = event.target;
-    if (value === "") {
-      return;
-    }
-    SetSearchQuery((prev)=>({
-      ...prev,
-      page_no:0
-    }))
-    const queryParams = new URLSearchParams({
-      page_no: 0,
-      page_size: searchQuery.page_size,
-      sort_by: searchQuery.sort_by,
-      sort_order: searchQuery.sort_order,
-    });
-
-    navigate(`/visits-by-date/${value}?${queryParams}`, { replace: true });
+    setSearchDate(event.target.value);
   };
+
+  // ✅ STATES
+  if (error) {
+    console.log(error);
+    return null;
+  }
 
   if (loading) {
     return <LoadingPage />;
   }
-
-  if (result.data.length === 0) {
-    return (
-      <div>
-        <div className="m-3 col-md-2">
-          <label className="form-label">Select a Date</label>
+  return (
+    <div>
+      {/* Search Form */}
+      <form className=" align-items-end m-3">
+        <div className="col-md-3">
+          <label htmlFor="dateInput">Select Date</label>
           <input
             type="date"
-            className="form-control"
             id="dateInput"
-            value={date}
-            name="dateInput"
+            className="form-control"
+            value={searchDate}
             max={today}
-            onChange={handleDateChange}
+            onChange={handleDateChange} // updates searchDate only
           />
         </div>
 
+        <div className="col-md-2">
+          <button
+            type="button"
+            onClick={handleDateSubmit}
+            className="btn btn-success w-100"
+          >
+            Search
+          </button>
+        </div>
+      </form>
+
+      {/* No Data UI */}
+      {liveResult.data.length === 0 ? (
         <div className="no-data-container">
           <div className="no-data-card">
             <span className="no-data-message">
@@ -138,86 +218,129 @@ function AllVisitPage({ pageTitle }) {
             </p>
           </div>
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <>
+          {/* Result Info */}
+          <div className="resultContainer">
+            <div className="entriesCard">
+              <span className="totalEntriesLabel">Total Entries:</span>
+              <span className="totalEntriesValue">{liveResult.totalData}</span>
+            </div>
 
-  return (
-    <div>
-      {/* Date Input Section */}
-      <div className="datePickerContainer">
-        <label className="formLabel">Select a Date</label>
-        <input
-          type="date"
-          className="formControl"
-          id="dateInput"
-          value={date}
-          name="dateInput"
-          max={today}
-          onChange={handleDateChange}
-        />
-      </div>
+            {/* Table */}
+            <div className="container mt-4 mb-5">
+              <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div className="card-header bg-white border-0 py-4 px-4">
+                  <h5 className="mb-0 fw-bold text-dark">
+                    <i className="bi bi-people-fill text-primary me-2"></i>
+                    Visitor Logs
+                  </h5>
+                </div>
 
-      {/* Result Information */}
-      <div className="resultContainer">
-        <div className="entriesCard">
-          <span className="totalEntriesLabel">Total Entries:</span>
-          <span className="totalEntriesValue">{result.totalData}</span>
-        </div>
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0 custom-table">
+                    <thead className="bg-light">
+                      <tr>
+                        <th>Visitor Details</th>
+                        <th>Host</th>
+                        <th>Reason</th>
+                        <th>Visited On</th>
+                        <th className="text-center">Status</th>
+                      </tr>
+                    </thead>
 
-        <div className="gridContainer">
-          {result.data.map((visit) => (
-            <ProfileCard
-              key={visit.id}
-              id={visit.visitorInfo.id}
-              name={visit.visitorInfo.visitorName}
-              time={visit.visitedOn}
-              visitorContact={visit.visitorInfo.visitorContact}
-              host={visit.visitorHost}
-              status={visit.status}
-              reason={visit.reason}
-              image={`${visit.visitorInfo.visitorImage}`}
-            />
-          ))}
-        </div>
-      </div>
+                    <tbody>
+                      {liveResult.data.map((visit) => {
+                        const getStatusBadge = (status) => {
+                          switch (status?.toUpperCase()) {
+                            case "APPROVED":
+                              return "bg-success-subtle text-success border border-success-subtle";
+                            case "PENDING":
+                              return "bg-warning-subtle text-warning border border-warning-subtle";
+                            case "REJECTED":
+                              return "bg-danger-subtle text-danger border border-danger-subtle";
+                            default:
+                              return "bg-secondary-subtle text-secondary border border-secondary-subtle";
+                          }
+                        };
 
-      {/* Pagination Section */}
-      <hr />
-      <div className="paginationContainer">
-        {/* Previous Button */}
-        <button
-          className="paginationButton"
-          disabled={result.pageNo === 0}
-          onClick={() => handlePageChange(result.pageNo - 1)}
-        >
-          Previous
-        </button>
+                        return (
+                          <tr key={visit.id}>
+                            <td>
+                              <div className="d-flex flex-column">
+                                <Link
+                                  className="fw-bold text-dark mb-1"
+                                  to={`${ReactBaseUrl}visitor-profile/${visit.visitorInfo.id}`}
+                                >
+                                  {visit.visitorInfo.visitorName}
+                                </Link>
 
-        {/* Page Numbers */}
-        {[...Array(result.totalPages).keys()].map((page) => (
-          <button
-            key={page + 1}
-            className={`pageNumberButton ${
-              result.pageNo === page ? "activePage" : "inactivePage"
-            }`}
-            onClick={() => handlePageChange(page)}
-          >
-            {page + 1}
-          </button>
-        ))}
+                                <span className="text-muted small">
+                                  <i className="bi bi-telephone-fill me-2"></i>
+                                  {visit.visitorInfo.visitorContact}
+                                </span>
+                              </div>
+                            </td>
 
-        {/* Next Button */}
-        <button
-          className="paginationButton"
-          disabled={
-            result.pageNo + 1 === result.totalPages || result.totalData === 0
-          }
-          onClick={() => handlePageChange(result.pageNo + 1)}
-        >
-          Next
-        </button>
-      </div>
+                            <td>{visit.visitorHost}</td>
+
+                            <td className="text-muted small">{visit.reason}</td>
+
+                            <td>{formatDate(visit.visitedOn)}</td>
+
+                            <td className="text-center">
+                              <span
+                                className={`badge rounded-pill px-3 py-2 ${getStatusBadge(
+                                  visit.status,
+                                )}`}
+                              >
+                                {visit.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          <hr />
+
+          <div className="paginationContainer">
+            <button
+              className="paginationButton"
+              disabled={liveResult.pageNo === 0}
+              onClick={() => handlePageChange(liveResult.pageNo - 1)}
+            >
+              Previous
+            </button>
+
+            {[...Array(liveResult.totalPages).keys()].map((page) => (
+              <button
+                key={page}
+                className={`pageNumberButton ${
+                  liveResult.pageNo === page ? "activePage" : "inactivePage"
+                }`}
+                onClick={() => handlePageChange(page)}
+              >
+                {page + 1}
+              </button>
+            ))}
+
+            <button
+              className="paginationButton"
+              disabled={liveResult.pageNo + 1 === liveResult.totalPages}
+              onClick={() => handlePageChange(liveResult.pageNo + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -38,11 +38,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/graphql", "/graphiql/**",
-                                        "/api/v1/file/**","/api/auth/**").permitAll()
-                                .anyRequest().authenticated()
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/graphql", "/graphql/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll() // ✅ FIXED
+                        .requestMatchers("/api/websocket/**").permitAll()
+                        .requestMatchers("/graphiql", "/graphiql/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/v1/file/**").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(sess ->
                         sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -50,9 +53,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
-
     }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(); // Password encoding
@@ -70,6 +71,5 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
 
 }

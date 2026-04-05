@@ -1,14 +1,14 @@
-import React, { useState, useContext, useEffect } from "react";
-import "../Security/LoginPage.css";
-import "../../css/Common.css";
-import { VisitorEntryPassContext } from "../../context/VisitorEntryPassContext";
 import { useMutation } from "@apollo/client";
-import { LOGIN_USER, Resend_Otp, Vetify_Otp } from "../../graphQl/queries";
+import { useContext, useEffect, useState } from "react";
+import { Button, Form } from "react-bootstrap";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
-import LoadingPage from "../LoadingPage";
-import { Navigate, useNavigate } from "react-router";
-import { Form, Button, Nav } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { VisitorEntryPassContext } from "../../context/VisitorEntryPassContext";
+import "../../css/Common.css";
+import { LOGIN_USER, Resend_Otp, Vetify_Otp } from "../../graphQl/queries";
+import LoadingPage from "../LoadingPage";
+import "../Security/LoginPage.css";
 function LoginPage() {
   const { setUserInfo, userInfo } = useContext(VisitorEntryPassContext);
   const [loginUserApi, { loading }] = useMutation(LOGIN_USER, {
@@ -18,13 +18,13 @@ function LoginPage() {
     Vetify_Otp,
     {
       fetchPolicy: "no-cache",
-    }
+    },
   );
   const [resendOtpApi, { loading: ResendOtpLoading }] = useMutation(
     Resend_Otp,
     {
       fetchPolicy: "no-cache",
-    }
+    },
   );
 
   const [showPassword, SetShowPassword] = useState(false);
@@ -71,7 +71,7 @@ function LoginPage() {
     if (usernameError || passwordError) {
       handleToastNotification(
         "isError",
-        "Please fill out all fields correctly."
+        "Please fill out all fields correctly.",
       );
       console.log("Form has errors:", { usernameError, passwordError });
       return; // Prevent API call if there are errors
@@ -113,7 +113,6 @@ function LoginPage() {
     }
   };
 
-  
   const submitLoginDataToApi = async (username, password) => {
     try {
       const { data } = await loginUserApi({
@@ -128,7 +127,7 @@ function LoginPage() {
       setUserInfo(user);
       const jwtToken = user.credentials.jwtToken.token;
       localStorage.setItem("userInfo", JSON.stringify(user));
-      sessionStorage.setItem("jwtToken", JSON.stringify(jwtToken));
+      sessionStorage.setItem("jwtToken", jwtToken);
       // ✅ Use navigate here
       navigate("/", {
         replace: true,
@@ -299,7 +298,7 @@ function LoginPage() {
               )}
             </div>
 
-            <div className="mb-3">
+            <div className="mb-">
               <label className="form-label">Password</label>
               <div className="input-group">
                 <input
