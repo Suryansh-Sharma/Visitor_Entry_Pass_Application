@@ -112,3 +112,4 @@ electron-dist/
 # env files
 .env
 .env.*
+User_Images
