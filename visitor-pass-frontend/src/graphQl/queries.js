@@ -335,3 +335,30 @@ export const LOGOUT_USER = gql`
     handleLogout(authorization: $authorization, refreshToken: $refreshToken)
   }
 `;
+
+export const SEARCH_VISITS = gql`
+  query SearchVisits($filter: VisitFilterInput, $pagination: PaginationInput) {
+    visits(filter: $filter, pagination: $pagination) {
+      pageNo
+      pageSize
+      totalData
+      totalPages
+
+      data {
+        id
+        visitedOn
+        reason
+        visitorHost
+        status
+        note
+
+        visitorInfo {
+          id
+          visitorContact
+          visitorName
+          visitorImage
+        }
+      }
+    }
+  }
+`;

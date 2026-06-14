@@ -1,4 +1,4 @@
-// index.js
+// index.jsx
 
 import {
   ApolloClient,
@@ -9,11 +9,10 @@ import {
 import { setContext } from "@apollo/client/link/context";
 import { jwtDecode } from "jwt-decode";
 import React from "react";
-import ReactDOM from "react-dom";
+import ReactDOM from "react-dom/client";
 import App from "./App";
 import Context from "./context/VisitorEntryPassContext";
 import { REGEN_JWT_TOKEN } from "./graphQl/queries";
-import reportWebVitals from "./reportWebVitals";
 
 const isTokenExpired = (token) => {
   try {
@@ -23,6 +22,7 @@ const isTokenExpired = (token) => {
     return true;
   }
 };
+
 const reGenerateToken = async () => {
   try {
     const tempClient = new ApolloClient({
@@ -57,20 +57,17 @@ const reGenerateToken = async () => {
     userInfo.credentials.refreshToken.generatedOn = generatedOn;
     userInfo.credentials.refreshToken.expiresOn = expiresOn;
     localStorage.setItem("userInfo", JSON.stringify(userInfo));
-    sessionStorage.setItem("jwtToken", newJwtToken);
     return newJwtToken;
   } catch (e) {
     console.error("Token regeneration error:", e);
     localStorage.removeItem("userInfo");
-    sessionStorage.removeItem("jwtToken");
     window.location.reload();
     return null;
   }
 };
 
-// ✅ Apollo HTTP Link
 const httpLink = createHttpLink({
-  uri: "http://localhost:8080/graphql", // Make sure this is reachable
+  uri: "http://localhost:8080/graphql",
 });
 let isRefreshing = false;
 let pendingRequests = [];
@@ -81,8 +78,6 @@ const resolvePendingRequests = (newToken) => {
 };
 
 const getValidToken = async (token) => {
-  // const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
-  // let token = userInfo?.credentials?.jwtToken?.token;
   if (token && !isTokenExpired(token)) {
     return token;
   }
@@ -107,36 +102,39 @@ const getValidToken = async (token) => {
   });
 };
 
-// ✅ Attach token from sessionStorage
 const authLink = setContext(async (_, { headers }) => {
-  const token = sessionStorage.getItem("jwtToken");
-
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const token = userInfo?.credentials?.jwtToken?.token;
   if (!token) {
-    return { headers };
+    return {
+      headers: {
+        ...headers,
+      },
+    };
   }
-
   const validToken = await getValidToken(token);
-
   return {
     headers: {
       ...headers,
-      authorization: validToken ? `Bearer ${validToken}` : "",
+      ...(validToken && {
+        Authorization: `Bearer ${validToken}`,
+      }),
     },
   };
 });
 
-// ✅ Create ApolloClient instance
 const client = new ApolloClient({
   link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
 });
-const root = ReactDOM.createRoot(document.getElementById("root"));
 
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <ApolloProvider client={client}>
-    <Context>
-      <App />
-    </Context>
-  </ApolloProvider>,
+  <React.StrictMode>
+    <ApolloProvider client={client}>
+      <Context>
+        <App />
+      </Context>
+    </ApolloProvider>
+  </React.StrictMode>,
 );
-reportWebVitals();

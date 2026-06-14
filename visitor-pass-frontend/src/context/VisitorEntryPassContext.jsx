@@ -1,28 +1,29 @@
 import { useLazyQuery } from "@apollo/client";
 import { createContext, useEffect, useState } from "react";
-import LoadingPage from "../components/LoadingPage";
 import { GET_ALL_TELEGRAM_IDS } from "../graphQl/queries";
+import { LoadingComponent } from "../components/LoadingComponent";
 
 export const VisitorEntryPassContext = createContext();
 
 const Context = ({ children }) => {
   const baseUrl = "http://localhost:8080/";
-  const ReactBaseUrl = "http://localhost:3000/";
+  const ReactBaseUrl = "http://localhost:5173/";
+
   const [getAllTelegramId, { loading }] = useLazyQuery(GET_ALL_TELEGRAM_IDS, {
     fetchPolicy: "network-only",
   });
 
   const [isLogin, setIsLogin] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
+  const [userInfo, setUserInfo] = useState(() => {
+    return JSON.parse(localStorage.getItem("userInfo")) || null;
+  });
   const [allTelegramIds, setTelegramIds] = useState([]);
+  const [isLoading, setLoading] = useState(true);
+
   const SortOrder = {
     ASC: "ASC",
     DESC: "DESC",
   };
-  useEffect(() => {
-    fetchTelegramIds();
-    getUserInfo();
-  }, []);
 
   const fetchTelegramIds = async () => {
     try {
@@ -32,10 +33,9 @@ const Context = ({ children }) => {
         console.log("Error while fetching telegram Id " + error);
         return;
       } else {
-        const data = response.data.getAllTelegramIds;
-        if (data.length > 0) {
+        const data = response.data?.getAllTelegramIds;
+        if (data && data.length > 0) {
           setTelegramIds(data);
-          console.log(allTelegramIds);
         } else {
           console.log("No id is present");
         }
@@ -45,28 +45,27 @@ const Context = ({ children }) => {
     }
   };
 
-  const getUserInfo = () => {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    if (!userInfo) {
-      sessionStorage.removeItem("jwtToken");
-      localStorage.removeItem("userInfo");
-      return null;
-    } else {
-      setUserInfo(userInfo);
-      sessionStorage.setItem("jwtToken", userInfo.credentials.jwtToken.token);
-      return userInfo;
-    }
+  const logout = () => {
+    localStorage.removeItem("userInfo");
+    setTelegramIds([]);
+    setUserInfo(null);
+  };
+  const login = (user) => {
+    setUserInfo(user);
+    localStorage.setItem("userInfo", JSON.stringify(user));
   };
 
+  useEffect(() => {
+    // fetchTelegramIds();
+    setLoading(false);
+  }, [fetchTelegramIds]);
   if (loading) {
-    return <LoadingPage />;
+    return <LoadingComponent text={"Please Wait, Data is Loading !!"} />;
   }
 
   return (
     <VisitorEntryPassContext.Provider
       value={{
-        ReactBaseUrl,
-        baseUrl,
         isLogin,
         setIsLogin,
         userInfo,
@@ -74,11 +73,14 @@ const Context = ({ children }) => {
         SortOrder,
         allTelegramIds,
         setTelegramIds,
-        getUserInfo,
+        isLoading,
+        login,
+        logout,
       }}
     >
       {children}
     </VisitorEntryPassContext.Provider>
   );
 };
+
 export default Context;

@@ -4,8 +4,7 @@ import { VisitorEntryPassContext } from "../../context/VisitorEntryPassContext";
 
 const PrivateRoute = ({ children }) => {
   const { userInfo } = useContext(VisitorEntryPassContext);
-  console.log("UserInfo:- ",userInfo);
-  if (!userInfo || !userInfo.isActive || !userInfo.isVerified) {
+  if (!userInfo) {
     return (
       <Navigate
         to="/login"
