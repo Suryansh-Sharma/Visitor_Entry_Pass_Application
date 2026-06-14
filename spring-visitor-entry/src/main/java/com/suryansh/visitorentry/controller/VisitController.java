@@ -1,8 +1,6 @@
 package com.suryansh.visitorentry.controller;
 
-import com.suryansh.visitorentry.dto.PaginationDto;
-import com.suryansh.visitorentry.dto.VisitingRecordPage;
-import com.suryansh.visitorentry.dto.VisitorDto;
+import com.suryansh.visitorentry.dto.*;
 import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.model.SearchFilter;
 import com.suryansh.visitorentry.model.VisitModel;
@@ -119,4 +117,9 @@ public class VisitController {
         return visitorService.handleGetVisitorsInPeriod(from_date, to_date,page_size,page_number, sort_by, sort_order);
     }
 
+//    New All in one visit api
+    @QueryMapping
+    public PageResponse<VisitingRecordWithVisitorInfo> visits(@Argument VisitFilterInput filter, @Argument PaginationInput pagination) {
+        return visitorService.search(filter,pagination);
+    }
 }

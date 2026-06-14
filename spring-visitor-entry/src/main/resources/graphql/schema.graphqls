@@ -4,6 +4,7 @@ type Subscription {
     notifyVisitStatusSubscription: NotifyVisitStatus
 }
 type Query {
+    visits(filter:VisitFilterInput,pagination:PaginationInput):PagingVisitDto!
     getVisit(id: ID!): String
 
     getVisitorByContact(visitorContact: String!):VisitorDto
@@ -116,6 +117,24 @@ input TelegramIdModel {
     role:Role
     hostName:String
 }
+
+# New Search Api for excluding old multiple api.
+input VisitFilterInput{
+    id:ID,
+    visitorContact:String
+    visitorName:String
+    visitorHost:String
+    status:STATUS
+    fromDate:LocalDate
+    toDate:LocalDate
+}
+input PaginationInput{
+    pageNo:Int=0
+    pageSize:Int=10
+    sortBy:String="visitedOn"
+    sortOrder:SortDirection=DESC
+}
+# Enums
 enum SortDirection {
     ASC
     DESC
@@ -128,11 +147,13 @@ enum Role {
     EXTRA
 }
 enum STATUS {
+    PENDING,
+    ACCEPTED,
+    REJECTED,
     COMPLETED,
     CANCELLED,
-    NOT_AVAILABLE,
-    PENDING,
     HOST_NOT_AVAILABLE,
+    NOT_AVAILABLE
 }
 # Output Dto.
 type UserDto{
@@ -170,16 +191,16 @@ type VisitorPagination{
 type PagingVisitDto{
     pageNo:Int
     totalPages:Int
-    data:[VisitWithVisitorInfoDto]
     pageSize:Int
     totalData:Int
+    data:[VisitWithVisitorInfoDto]
 }
 type VisitWithVisitorInfoDto{
     id:String,
     visitedOn:String,
     reason:String
     visitorHost:String,
-    status:String,
+    status:STATUS,
     note:String
     visitorInfo:VisitorInfo
 }

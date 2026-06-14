@@ -3,7 +3,7 @@ package com.suryansh.visitorentry.service;
 import com.suryansh.visitorentry.entity.VisitingRecordDoc;
 import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
-import com.suryansh.visitorentry.repository.VisitRepository;
+import com.suryansh.visitorentry.repository.VisitorRepository;
 import com.suryansh.visitorentry.repository.VisitingRecordRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +15,9 @@ import org.springframework.stereotype.Service;
 public class ListenTelegramEvent {
     private static final Logger logger = LoggerFactory.getLogger(ListenTelegramEvent.class);
     private final VisitingRecordRepo visitingRecordRepo;
-    private final VisitRepository visitRepository;
+    private final VisitorRepository visitRepository;
 
-    public ListenTelegramEvent(VisitingRecordRepo visitingRecordRepo, VisitRepository visitRepository) {
+    public ListenTelegramEvent(VisitingRecordRepo visitingRecordRepo, VisitorRepository visitRepository) {
         this.visitingRecordRepo = visitingRecordRepo;
         this.visitRepository = visitRepository;
     }

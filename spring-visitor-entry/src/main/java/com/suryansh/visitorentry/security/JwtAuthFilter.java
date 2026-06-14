@@ -44,6 +44,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = null;
         String userId = null;
         try{
+            String path = request.getServletPath();
+            if (path.startsWith("/graphiql")
+                    || path.startsWith("/ws")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             // ✅ 1. Skip WebSocket handshake requests
             String upgrade = request.getHeader("Upgrade");
             if ("websocket".equalsIgnoreCase(upgrade)) {

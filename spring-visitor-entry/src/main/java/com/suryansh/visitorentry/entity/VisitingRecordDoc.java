@@ -1,6 +1,5 @@
 package com.suryansh.visitorentry.entity;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,12 +20,12 @@ public class VisitingRecordDoc {
     private Status status;
     private String note;
     public enum Status {
+        PENDING,
         ACCEPTED,
+        REJECTED,
         COMPLETED,
         CANCELLED,
-        NOT_AVAILABLE,
-        PENDING,
         HOST_NOT_AVAILABLE,
-        REJECTED
+        NOT_AVAILABLE
     }
 }

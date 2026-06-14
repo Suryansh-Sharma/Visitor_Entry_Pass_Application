@@ -1,8 +1,6 @@
 package com.suryansh.visitorentry.service.interfaces;
 
-import com.suryansh.visitorentry.dto.PaginationDto;
-import com.suryansh.visitorentry.dto.VisitingRecordPage;
-import com.suryansh.visitorentry.dto.VisitorDto;
+import com.suryansh.visitorentry.dto.*;
 import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.model.SearchFilter;
 import com.suryansh.visitorentry.model.VisitModel;
@@ -32,4 +30,5 @@ public interface VisitorService {
 
     VisitingRecordPage visitsOfVisitor(String id, int pageNumber, int pageSize, String sortBy, String sortOrder);
 
+    PageResponse<VisitingRecordWithVisitorInfo> search(VisitFilterInput filter, PaginationInput pagination);
 }

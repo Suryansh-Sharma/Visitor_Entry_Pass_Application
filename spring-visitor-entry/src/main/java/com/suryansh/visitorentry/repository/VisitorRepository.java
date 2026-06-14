@@ -1,12 +1,8 @@
 package com.suryansh.visitorentry.repository;
 
 import com.suryansh.visitorentry.entity.VisitorDoc;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -14,8 +10,7 @@ import java.util.Optional;
  * This is used for VisitorDoc.
  * @author suryansh
  */
-public interface VisitRepository extends MongoRepository<VisitorDoc,String> {
-    
-    Optional<VisitorDoc> findByVisitorContact(String visitorContact);
+public interface VisitorRepository extends MongoRepository<VisitorDoc,String>, VisitorRepositoryCustom {
 
+    Optional<VisitorDoc> findByVisitorContact(String visitorContact);
 }

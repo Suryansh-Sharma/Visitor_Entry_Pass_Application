@@ -9,10 +9,14 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.List;
 
 @Component
 public class MyTelegramBot extends TelegramLongPollingBot {
@@ -68,42 +72,57 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             } else {
                 logger.warn("Unknown action: {}", action);
             }
-            // Acknowledge callback to show popup
         } catch (Exception e) {
             logger.error("Error processing callbackQuery", e);
         }
     }
 
-    public void acknowledgeCallback(CallbackQuery callbackQuery, String action, String responseMessage) {
+    public void acknowledgeCallback(CallbackQuery callbackQuery,
+                                    String action,
+                                    String responseMessage) {
+
         try {
-            // ✅ 1. Acknowledge callback (popup)
             AnswerCallbackQuery answer = new AnswerCallbackQuery();
             answer.setCallbackQueryId(callbackQuery.getId());
             answer.setText(getPopupText(action));
+
             execute(answer);
+            if (callbackQuery.getMessage() instanceof Message message) {
+                EditMessageReplyMarkup removeButtons =
+                        new EditMessageReplyMarkup();
+                removeButtons.setChatId(message.getChatId().toString());
+                removeButtons.setMessageId(message.getMessageId());
+                InlineKeyboardMarkup emptyMarkup =
+                        new InlineKeyboardMarkup();
+                emptyMarkup.setKeyboard(List.of());
 
-            // ✅ 2. Edit an original message (better UX than sending new one)
-            EditMessageText editMessage = new EditMessageText();
-            editMessage.setChatId(callbackQuery.getMessage().getChatId().toString());
-            editMessage.setMessageId(callbackQuery.getMessage().getMessageId());
-            editMessage.setText(responseMessage);
-            editMessage.setParseMode("HTML");
-            execute(editMessage);
+                removeButtons.setReplyMarkup(emptyMarkup);
 
+                execute(removeButtons);
+            }
+            SendMessage confirmation = new SendMessage();
+            confirmation.setChatId(
+                    callbackQuery.getFrom().getId().toString()
+            );
+            confirmation.setText(responseMessage);
+            confirmation.setParseMode("HTML");
+            execute(confirmation);
         } catch (TelegramApiException e) {
-            logger.error("Failed to process callback for action {} and query {}", action, callbackQuery.getId(), e);
+            logger.error(
+                    "Failed to process callback for action {} and query {}",
+                    action,
+                    callbackQuery.getId(),
+                    e
+            );
         }
     }
 
     private String getPopupText(String action) {
-        switch (action) {
-            case "ACCEPT":
-                return "✅ Visitor accepted";
-            case "REJECT":
-                return "❌ Visitor rejected";
-            default:
-                return "⚠️ Action processed";
-        }
+        return switch (action) {
+            case "ACCEPT" -> "✅ Visitor accepted";
+            case "REJECT" -> "❌ Visitor rejected";
+            default -> "⚠️ Action processed";
+        };
     }
 
 }

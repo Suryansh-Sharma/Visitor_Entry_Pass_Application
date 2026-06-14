@@ -74,7 +74,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @CacheEvict(value = "blacklistedTokens",allEntries = true)
-    @Scheduled(fixedRate = 3600000)
+//    @Scheduled(fixedRate = 3600000)
     public void removeALLExpiredToken(){
         Instant now =ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).toInstant();
         try {

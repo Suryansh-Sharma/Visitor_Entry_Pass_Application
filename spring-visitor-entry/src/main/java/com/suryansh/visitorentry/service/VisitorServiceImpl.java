@@ -6,7 +6,7 @@ import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
 import com.suryansh.visitorentry.model.SearchFilter;
 import com.suryansh.visitorentry.model.VisitModel;
-import com.suryansh.visitorentry.repository.VisitRepository;
+import com.suryansh.visitorentry.repository.VisitorRepository;
 import com.suryansh.visitorentry.repository.VisitingRecordRepo;
 import com.suryansh.visitorentry.service.interfaces.FileService;
 import com.suryansh.visitorentry.service.interfaces.TelegramService;
@@ -31,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,10 +40,12 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * This class is used for performing visit related operation.
@@ -53,14 +56,14 @@ import java.util.regex.Pattern;
 public class VisitorServiceImpl implements VisitorService {
 
     private static final Logger logger = LoggerFactory.getLogger(VisitorServiceImpl.class);
-    private final VisitRepository visitRepository;
+    private final VisitorRepository visitRepository;
     private final VisitingRecordRepo visitingRecordRepo;
     private final MongoTemplate mongoTemplate;
     private final TelegramService telegramService;
     private final MapperService mapperService;
     private final FileService fileService;
 
-    public VisitorServiceImpl(VisitRepository visitRepository, VisitingRecordRepo visitingRecordRepo, MongoTemplate mongoTemplate, TelegramService telegramService, MapperService mapperService, FileService fileService) {
+    public VisitorServiceImpl(VisitorRepository visitRepository, VisitingRecordRepo visitingRecordRepo, MongoTemplate mongoTemplate, TelegramService telegramService, MapperService mapperService, FileService fileService) {
         this.visitRepository = visitRepository;
         this.visitingRecordRepo = visitingRecordRepo;
         this.mongoTemplate = mongoTemplate;
@@ -91,13 +94,13 @@ public class VisitorServiceImpl implements VisitorService {
                     visitorDoc = visitRepository.save(visitorDoc);
                 }
                 VisitingRecordDoc visitingRecordDoc = mapperService.mapVisitingRecordModelToDoc(visitModel.getVisitingRecord());
+                visitingRecordDoc.setStatus(VisitingRecordDoc.Status.PENDING);
                 visitingRecordDoc.setVisitorId(visitorDoc.getId());
                 ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
                 visitingRecordDoc.setVisitedOn(nowInIndia.toInstant());
                 visitingRecordDoc = visitingRecordRepo.save(visitingRecordDoc);
                 TelegramMessageDto telegramMessage = new TelegramMessageDto(visitingRecordDoc.getId(), visitModel.getVisitorContact(), visitModel.getVisitorName(), visitModel.getVisitingRecord().getReason(), visitModel.getVisitorImage(), visitModel.getVisitingRecord().getVisitorHost(), visitModel.getVisitorAddress().getCity(), visitModel.getVisitorAddress().getLine1(), visitModel.getVisitorAddress().getPinCode());
                 telegramService.sendVisitMessageToHost(telegramMessage);
-                logger.info("New Visit added for {} to {}", visitModel.getVisitorName(), visitModel.getVisitingRecord().getVisitorHost());
                 return "Visit successfully added for user " + visitModel.getVisitorName();
             } catch (SpringVisitorException e) {
                 throw e;
@@ -362,5 +365,166 @@ public class VisitorServiceImpl implements VisitorService {
         return new PaginationDto(pageable.getPageNumber(), totalPages, results.getMappedResults(), pageable.getPageSize(), (int) totalRecords);
     }
 
+    @Override
+    public PageResponse<VisitingRecordWithVisitorInfo> search(
+            VisitFilterInput filter,
+            PaginationInput pagination
+    ) {
 
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        // Date Filter
+        if (filter.fromDate() != null || filter.toDate() != null) {
+            Criteria dateCriteria = Criteria.where("visitedOn");
+            if (filter.fromDate() != null) {
+                dateCriteria.gte(
+                        filter.fromDate()
+                                .atStartOfDay(ZoneId.of("Asia/Kolkata"))
+                                .toInstant()
+                );
+            }
+            if (filter.toDate() != null) {
+                dateCriteria.lt(
+                        filter.toDate()
+                                .plusDays(1)
+                                .atStartOfDay(ZoneId.of("Asia/Kolkata"))
+                                .toInstant()
+                );
+            }
+            criteria.add(dateCriteria);
+        }
+        // Status Filter
+        if (filter.status() != null) {
+            criteria.add(
+                    Criteria.where("status")
+                            .is(filter.status())
+            );
+        }
+        // Host Filter
+        if (StringUtils.hasText(filter.visitorHost())) {
+            criteria.add(
+                    Criteria.where("visitorHost")
+                            .regex(Pattern.quote(filter.visitorHost()), "i")
+            );
+        }
+        // Reason Filter
+        if (StringUtils.hasText(filter.reason())) {
+            criteria.add(
+                    Criteria.where("reason")
+                            .regex(Pattern.quote(filter.reason()), "i")
+            );
+        }
+        // Visitor Filter
+        if (StringUtils.hasText(filter.visitorName())
+                || StringUtils.hasText(filter.visitorContact())) {
+            List<String> visitorIds =
+                    visitRepository.findIdsByFilter(
+                            filter.visitorName(),
+                            filter.visitorContact()
+                    );
+            if (visitorIds.isEmpty()) {
+                return PageResponse.empty(
+                        pagination.pageNo(),
+                        pagination.pageSize()
+                );
+            }
+            criteria.add(
+                    Criteria.where("visitorId")
+                            .in(visitorIds)
+            );
+        }
+        // Combine Criteria
+        if (!criteria.isEmpty()) {
+            query.addCriteria(
+                    new Criteria().andOperator(
+                            criteria.toArray(new Criteria[0])
+                    )
+            );
+        }
+        // Count Query
+        Query countQuery = Query.of(query);
+        long totalData = mongoTemplate.count(
+                countQuery,
+                VisitingRecordDoc.class
+        );
+        // Sorting
+        String sortBy = StringUtils.hasText(pagination.sortBy())
+                ? pagination.sortBy()
+                : "visitedOn";
+        Sort.Direction sortDirection =
+                pagination.sortOrder() != null
+                        ? pagination.sortOrder()
+                        : Sort.Direction.DESC;
+        query.with(
+                Sort.by(sortDirection, sortBy)
+        );
+        // Pagination
+        int pageNo = Math.max(
+                pagination.pageNo(),
+                0
+        );
+        int pageSize = pagination.pageSize() > 0
+                ? pagination.pageSize()
+                : 10;
+        query.skip(
+                (long) pageNo * pageSize
+        );
+        query.limit(pageSize);
+        // Fetch Data
+        List<VisitingRecordDoc> visits =
+                mongoTemplate.find(
+                        query,
+                        VisitingRecordDoc.class
+                );
+        // Map to DTO
+        List<String> visitorIds = visits.stream()
+                .map(VisitingRecordDoc::getVisitorId)
+                .distinct()
+                .toList();
+
+        Map<String, VisitorDoc> visitorMap = visitRepository
+                .findAllById(visitorIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        VisitorDoc::getId,
+                        Function.identity()
+                ));
+        List<VisitingRecordWithVisitorInfo> data =
+                visits.stream()
+                        .map(visit -> {
+                            VisitorDoc visitor =
+                                    visitorMap.get(visit.getVisitorId());
+                            return new VisitingRecordWithVisitorInfo(
+                                    visit.getId(),
+                                    visit.getVisitedOn(),
+                                    visit.getReason(),
+                                    visit.getVisitorHost(),
+                                    visit.getStatus(),
+                                    visit.getNote(),
+                                    visitor == null
+                                            ? null
+                                            : new VisitingRecordWithVisitorInfo.VisitorInfo(
+                                            visitor.getId(),
+                                            visitor.getVisitorContact(),
+                                            visitor.getVisitorName(),
+                                            visitor.getVisitorImage()
+                                    )
+                            );
+                        })
+                        .toList();
+        int totalPages =
+                totalData == 0
+                        ? 0
+                        :(int) Math.ceil(
+                        (double) totalData / pageSize
+                );
+        return new PageResponse<>(
+                pageNo,
+                pageSize,
+                totalData,
+                totalPages,
+                data
+                );
+    }
 }

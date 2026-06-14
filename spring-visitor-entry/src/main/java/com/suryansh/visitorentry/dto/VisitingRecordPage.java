@@ -9,4 +9,5 @@ public record VisitingRecordPage(
         int pageSize,
         long totalData
 ) {
+
 }
