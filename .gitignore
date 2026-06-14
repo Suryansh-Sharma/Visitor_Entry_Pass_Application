@@ -1,0 +1,96 @@
+# ==========================
+# Operating System Files
+# ==========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================
+# IDE / Editors
+# ==========================
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*.bak
+*.orig
+
+# ==========================
+# Logs
+# ==========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================
+# User Uploaded Images
+# ==========================
+User_Images/
+!User_Images/.gitkeep
+
+# ==========================
+# Spring Boot Backend
+# ==========================
+spring-visitor-entry/target/
+spring-visitor-entry/.mvn/wrapper/maven-wrapper.jar
+
+# Application secrets
+spring-visitor-entry/src/main/resources/secret-application.yml
+spring-visitor-entry/src/main/resources/application-local.yml
+
+# Generated files
+spring-visitor-entry/*.pid
+spring-visitor-entry/*.hprof
+
+# ==========================
+# React Frontend
+# ==========================
+visitor-pass-frontend/node_modules/
+visitor-pass-frontend/dist/
+visitor-pass-frontend/build/
+visitor-pass-frontend/.vite/
+visitor-pass-frontend/.eslintcache
+
+# Environment files
+visitor-pass-frontend/.env
+visitor-pass-frontend/.env.*
+!visitor-pass-frontend/.env.example
+
+# ==========================
+# Electron (Future Phase)
+# ==========================
+visitor-pass-frontend/release/
+visitor-pass-frontend/out/
+visitor-pass-frontend/electron-dist/
+visitor-pass-frontend/*.asar
+
+# ==========================
+# SQLite (Phase 2)
+# ==========================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+*.db-wal
+*.db-shm
+
+# ==========================
+# Temporary Files
+# ==========================
+tmp/
+temp/
+.cache/
+coverage/
+
+# ==========================
+# Archives
+# ==========================
+*.zip
+*.tar
+*.tar.gz
+*.7z

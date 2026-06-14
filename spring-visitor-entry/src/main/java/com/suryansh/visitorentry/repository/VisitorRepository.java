@@ -15,16 +15,7 @@ import java.util.Optional;
  * @author suryansh
  */
 public interface VisitRepository extends MongoRepository<VisitorDoc,String> {
-    /**
-     * This method is used to find a visitor on a specific date.
-     * This method is also used for finding today's visit.
-     *
-     * @param pageable It accepts a Pageable object.
-     * @return It will return a page of visitor document.
-     */
-    @Query(value = "{'visitingRecords': { $elemMatch: { 'visitingDateTime': { $gte: ?0, $lt: ?1 } } }}",fields = "{'visitingRecords':0}")
-    Page<VisitorDoc> findVisitBySpecificDate(LocalDateTime startOfDay, LocalDateTime endOfDay, Pageable pageable);
-
+    
     Optional<VisitorDoc> findByVisitorContact(String visitorContact);
 
 }
