@@ -94,3 +94,21 @@ coverage/
 *.tar
 *.tar.gz
 *.7z
+
+# dependencies
+node_modules/
+
+# build/cache files
+.cache/
+dist/
+build/
+
+# Electron
+electron-dist/
+
+# logs
+*.log
+
+# env files
+.env
+.env.*
