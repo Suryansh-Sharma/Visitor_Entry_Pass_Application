@@ -1,5 +1,3 @@
-.MainApp{
-  margin: 20px;
-  cursor: default;
-}
-
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

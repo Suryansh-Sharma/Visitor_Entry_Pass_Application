@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- 👈 Un-commented and removed %PUBLIC_URL% -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Web site converted to Vite" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <!-- 👈 Un-commented and fixed path -->
+    <link rel="manifest" href="/manifest.json" />
+    <!-- 👈 Un-commented and fixed path -->
+    <title>Visitor Entry Pass</title>
+    <script type="module">
+      import * as ReactModule from "react";
+      window.React = ReactModule.default || ReactModule;
+
+      if (typeof global === "undefined") {
+        window.global = window;
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <div id="root"></div>
+
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>

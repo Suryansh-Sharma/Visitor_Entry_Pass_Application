@@ -1,64 +1,74 @@
-import "bootstrap/dist/css/bootstrap.min.css";
-import { useContext, useEffect, useState } from "react";
+import { useContext } from "react";
 import "react-calendar/dist/Calendar.css";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
-import "../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./App.css";
 import AboutPage from "./components/About Page.jsx";
-import AddVisit from "./components/AddVisit";
-import AllVisitPage from "./components/AllVisitPage";
-import Header from "./components/Header";
-import LoadingPage from "./components/LoadingPage";
-import SearchPage from "./components/SearchPage";
-import LoginPage from "./components/Security/LoginPage";
+import AddVisit from "./components/AddVisit.jsx";
+import AllVisitPage from "./components/AllVisitPage.jsx";
+import Header from "./components/Header.jsx";
+import { LoadingComponent } from "./components/LoadingComponent.jsx";
+import LoadingPage from "./components/LoadingPage.jsx";
+import SearchPage from "./components/SearchPage.jsx";
+import AccountVerificationPage from "./components/Security/AccountVerificationPage.jsx";
+import LoginPage from "./components/Security/LoginPage.jsx";
 import PrivateRoute from "./components/Security/PrivateRoute.jsx";
+import PublicRoute from "./components/Security/PublicRoute.jsx";
 import SignUp from "./components/SignUp.jsx";
 import TelegramIds from "./components/TelegramIds.jsx";
-import UpdateVisitorProfile from "./components/UpdateVisitorProfile";
-import VisitorProfile from "./components/UserProfile";
+import UpdateVisitorProfile from "./components/UpdateVisitorProfile.jsx";
+import VisitorProfile from "./components/UserProfile.jsx";
 import VisitsOfVisitor from "./components/VisitsOfVisitor.jsx";
 import { VisitorEntryPassContext } from "./context/VisitorEntryPassContext.jsx";
-import UserWebSocket from "./components/UserWebSocket.jsx";
+import NotFoundPage from "./components/NotFoundPage.jsx";
+import VisitsPage from "./pages/VisitsPage.jsx";
+
 function App() {
-  const { setIsLogin, setUserInfo, getUserInfo } = useContext(
-    VisitorEntryPassContext,
-  );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const res = getUserInfo();
-    if (res !== null) {
-      setUserInfo(res);
-      setIsLogin(true);
-    }
-    setLoading(false);
-  }, []);
-
+  const { loading, userInfo } = useContext(VisitorEntryPassContext);
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingComponent text={"Please Wait App is Loading"} />;
+  }
+
+  if (userInfo && !userInfo.isVerified) {
+    <AccountVerificationPage />;
   }
 
   return (
     <div className="MainApp">
       <ToastContainer />
-      <UserWebSocket />
+      {/* <UserWebSocket /> */}
       <HashRouter>
         <Header />
         <Routes>
+          <Route path="*" element={<NotFoundPage />} />
           {/* Public routes */}
           <Route path="/" element={<AboutPage />} />
-          <Route path="sign-up" element={<SignUp />} />
-          <Route path="login" element={<LoginPage />} />
+          <Route
+            path="login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+
+          <Route
+            path="sign-up"
+            element={
+              <PublicRoute>
+                <SignUp />
+              </PublicRoute>
+            }
+          />
 
           {/* Protected routes */}
+
           <Route
-            path="visits-by-date/:date"
+            path="all-visit"
             element={
               <PrivateRoute>
-                <AllVisitPage pageTitle="All Visit " />
+                <VisitsPage />
               </PrivateRoute>
             }
           />
