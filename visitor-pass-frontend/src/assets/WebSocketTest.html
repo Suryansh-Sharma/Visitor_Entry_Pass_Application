@@ -1,15 +1,40 @@
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+<!-- <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WebSocket Test</title>
 
-<script>
-  const socket = new SockJS("http://localhost:8080/ws"); // ✅ FIXED
-  const stompClient = Stomp.over(socket);
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
 
-  stompClient.connect({}, () => {
-    console.log("Connected");
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  </head>
 
-    stompClient.subscribe("/topic/visits", (msg) => {
-      console.log("Received:", JSON.parse(msg.body));
-    });
-  });
-</script>
+  <body>
+    <h1>WebSocket Test</h1>
+
+    <script>
+      console.log("SockJS =", window.SockJS);
+      console.log("Stomp =", window.Stomp);
+
+      const socket = new SockJS("http://localhost:8080/ws");
+
+      const stompClient = Stomp.over(socket);
+
+      stompClient.debug = console.log;
+
+      stompClient.connect(
+        {},
+        function (frame) {
+          console.log("Connected:", frame);
+
+          stompClient.subscribe("/topic/visits", function (msg) {
+            console.log("Received:", JSON.parse(msg.body));
+          });
+        },
+        function (error) {
+          console.error("STOMP Error:", error);
+        },
+      );
+    </script>
+  </body>
+</html> -->

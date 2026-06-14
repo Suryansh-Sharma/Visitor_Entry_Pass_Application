@@ -8,23 +8,18 @@ const UserWebSocket = () => {
   const isShowing = useRef(false);
 
   useEffect(() => {
-    const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
-
-      onConnect: () => {
-        console.log("WebSocket connected ✅");
-
-        client.subscribe("/topic/visits", (msg) => {
-          const data = JSON.parse(msg.body);
-
-          setMessageQueue((prev) => [...prev, data]);
-        });
-      },
-    });
-
-    client.activate();
-
-    return () => client.deactivate();
+    // const client = new Client({
+    //   webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+    //   onConnect: () => {
+    //     console.log("WebSocket connected ✅");
+    //     client.subscribe("/topic/visits", (msg) => {
+    //       const data = JSON.parse(msg.body);
+    //       setMessageQueue((prev) => [...prev, data]);
+    //     });
+    //   },
+    // });
+    // client.activate();
+    // return () => client.deactivate();
   }, []);
 
   // ✅ Process queue one by one
