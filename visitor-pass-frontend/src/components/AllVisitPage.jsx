@@ -9,7 +9,7 @@ import LoadingPage from "./LoadingPage";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-const NoDataImg = require("../assets/no-data.png");
+import NoDataImg from "../assets/no-data.png"; //
 
 function AllVisitPage({ pageTitle }) {
   const { ReactBaseUrl } = useContext(VisitorEntryPassContext);
@@ -97,7 +97,13 @@ function AllVisitPage({ pageTitle }) {
             const exists = prev.data.find((v) => v.visitId === update.visitId);
 
             // ✅ Only update visible data
-            if (!exists) return prev;
+            if (!exists) {
+              console.log(
+                "Visit not found to update after web socket response ",
+                update.visitId,
+              );
+              return prev;
+            }
 
             return {
               ...prev,
