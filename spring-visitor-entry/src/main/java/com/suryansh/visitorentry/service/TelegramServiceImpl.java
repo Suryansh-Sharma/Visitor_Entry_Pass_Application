@@ -45,6 +45,8 @@ public class TelegramServiceImpl implements TelegramService {
     private final MyTelegramBot telegramBot;
     @Value("${folder.images}")
     private String FOLDER_PATH;
+    @Value("${folder.defaultImage}")
+    private String DEFAULT_IMAGE;
     @Value("${telegram.chatIdSuryansh}")
     private String DEFAULT_CHAT_ID;
 
@@ -76,8 +78,12 @@ public class TelegramServiceImpl implements TelegramService {
             String imagePath = FOLDER_PATH + "/" + dto.visitorImage();
             File imageFile = new File(imagePath);
             if (!imageFile.exists()) {
-                logger.error("Image file not found at {}. Unable to send photo for visitor: {}", imagePath, dto.visitorName());
-                return;
+                logger.warn("Image not found at {}. Using default image for visitor: {}", imagePath, dto.visitorName());
+                imageFile = new File(FOLDER_PATH + "/" + DEFAULT_IMAGE);
+                if (!imageFile.exists()) {
+                    logger.error("Default image also not found. Aborting Telegram notification for visitor: {}", dto.visitorName());
+                    return;
+                }
             }
             logger.info("Image path {} ",imageFile.getAbsolutePath());
             SendPhoto sendPhoto = new SendPhoto();

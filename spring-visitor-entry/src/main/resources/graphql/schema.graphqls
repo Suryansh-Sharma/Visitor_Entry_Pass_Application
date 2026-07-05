@@ -5,6 +5,9 @@ type Subscription {
 }
 type Query {
     visits(filter:VisitFilterInput,pagination:PaginationInput):PagingVisitDto!
+
+    searchVisitor(filter:VisitorFilterInput,pagination:PaginationInput):VisitorPagination!
+
     getVisit(id: ID!): String
 
     getVisitorByContact(visitorContact: String!):VisitorDto
@@ -14,8 +17,6 @@ type Query {
     getVisitOfVisitor(id:String,page_size:Int=10,page_number:Int=0,sort_by:String,sort_order:SortDirection):VisitingRecordPage
 
     getVisitorOnSpecificDate(date:String!,page_size:Int=10,page_number:Int=0,sort_by:String,sort_order:SortDirection):PagingVisitDto
-
-    searchVisitor(filters:[SearchFilter]!,pageSize:Int=10,pageNumber:Int=0,sort_by:String,sort_order:SortDirection):VisitorPagination
 
     getVisitorsOnPeriod(from_date:String!,to_date:String!,page_size:Int=10,page_number:Int=0,,sort_by:String,sort_order:SortDirection):PagingVisitDto
 
@@ -29,7 +30,7 @@ type Mutation {
 
     deleteTelegramId(id:String!):String
 
-    addNewVisit(input: VisitInput!):String
+    addNewVisit(input: AddNewVisitModel!):String
 
     updateVisitorInfo(input:VisitorInput):VisitorDto
 
@@ -50,6 +51,7 @@ type Mutation {
     handleLogout(authorization: String!,refreshToken:String!):String
 
     forgetPassword(username:String!):String
+    
     testTelegram(id:String!):String
 }
 
@@ -68,14 +70,12 @@ input UserLoginInput{
     contact:String!
     password:String!
 }
-input VisitInput {
+input AddNewVisitModel {
     visitorContact: String!
     visitorName: String!
     visitorImage: String!
-    hasChildrenInSchool: Boolean
-    banStatus:BanStatusInput
-    visitorAddress: VisitorAddressInput
     visitorChildren: [VisitorChildInput]
+    visitorAddress: VisitorAddressInput
     visitingRecord: VisitingRecordInput!
 }
 input VisitorInput{
@@ -120,7 +120,7 @@ input TelegramIdModel {
 
 # New Search Api for excluding old multiple api.
 input VisitFilterInput{
-    id:ID,
+    visitorId:ID,
     visitorContact:String
     visitorName:String
     visitorHost:String
@@ -131,8 +131,14 @@ input VisitFilterInput{
 input PaginationInput{
     pageNo:Int=0
     pageSize:Int=10
-    sortBy:String="visitedOn"
+    sortBy:String="id"
     sortOrder:SortDirection=DESC
+}
+input VisitorFilterInput{
+    visitorContact:String
+    visitorName:String
+    visitorAddress:String
+    visitorChildrenName:String
 }
 # Enums
 enum SortDirection {
@@ -184,9 +190,9 @@ type BanStatusDto{
 type VisitorPagination{
     pageNo:Int
     totalPages:Int
-    data:[VisitorDto]
     pageSize:Int
     totalData:Int
+    data:[VisitorDto]
 }
 type PagingVisitDto{
     pageNo:Int

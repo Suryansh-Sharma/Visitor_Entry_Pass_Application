@@ -5,6 +5,7 @@ import com.suryansh.visitorentry.dto.VisitorDto;
 import com.suryansh.visitorentry.entity.TelegramIdDocument;
 import com.suryansh.visitorentry.entity.VisitingRecordDoc;
 import com.suryansh.visitorentry.entity.VisitorDoc;
+import com.suryansh.visitorentry.model.AddNewVisitModel;
 import com.suryansh.visitorentry.model.VisitModel;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -26,12 +27,14 @@ public class MapperService {
             banStatus= new  VisitorDoc.BanStatus(LocalDateTime.now(),model.getBanStatus().getIsVisitorBanned(),model.getBanStatus().getReason());
         }
         document.setBanStatus(banStatus);
-
         if (!model.getHasChildrenInSchool()){
             document.setHasChildrenInSchool(false);
             document.setVisitorChildren(null);
         }
         return document;
+    }
+    public VisitorDoc mapAddNewVisitModelToEntity(AddNewVisitModel model){
+        return mapper.map(model, VisitorDoc.class);
     }
 
 
@@ -43,7 +46,11 @@ public class MapperService {
         return mapper.map(document, TelegramIdDto.class);
     }
 
-    public VisitingRecordDoc mapVisitingRecordModelToDoc(VisitModel.VisitingRecord visitingRecord) {
+    public VisitingRecordDoc  mapAddNewVisitVisitingRecordToEntity(AddNewVisitModel.VisitingRecord visitingRecord) {
         return mapper.map(visitingRecord, VisitingRecordDoc.class);
+    }
+
+    public VisitorDto visitorDocToEntity(VisitorDoc visitorDoc) {
+        return mapper.map(visitorDoc, VisitorDto.class);
     }
 }

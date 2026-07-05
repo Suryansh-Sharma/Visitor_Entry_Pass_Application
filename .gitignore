@@ -113,3 +113,4 @@ electron-dist/
 .env
 .env.*
 User_Images
+.claude/

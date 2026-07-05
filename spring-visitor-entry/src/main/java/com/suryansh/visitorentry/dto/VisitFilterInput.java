@@ -5,7 +5,7 @@ import com.suryansh.visitorentry.entity.VisitingRecordDoc;
 import java.time.LocalDate;
 
 public record VisitFilterInput(
-        String id,
+        String visitorId,
         String visitorContact,
         String visitorName,
         String visitorHost,

@@ -4,10 +4,9 @@ import com.suryansh.visitorentry.dto.*;
 import com.suryansh.visitorentry.entity.VisitingRecordDoc;
 import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
-import com.suryansh.visitorentry.model.SearchFilter;
-import com.suryansh.visitorentry.model.VisitModel;
-import com.suryansh.visitorentry.repository.VisitorRepository;
+import com.suryansh.visitorentry.model.AddNewVisitModel;
 import com.suryansh.visitorentry.repository.VisitingRecordRepo;
+import com.suryansh.visitorentry.repository.VisitorRepository;
 import com.suryansh.visitorentry.service.interfaces.FileService;
 import com.suryansh.visitorentry.service.interfaces.TelegramService;
 import com.suryansh.visitorentry.service.interfaces.VisitorService;
@@ -25,7 +24,6 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.ConvertOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
@@ -76,7 +74,7 @@ public class VisitorServiceImpl implements VisitorService {
     @Transactional
     @Async
     @CacheEvict(value = "visitsOnSpecificDate", allEntries = true)
-    public CompletableFuture<String> addNewVisitInDb(VisitModel visitModel) {
+    public CompletableFuture<String> addNewVisitInDb(AddNewVisitModel visitModel) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Optional<VisitorDoc> visitorOptional = visitRepository.findByVisitorContact(visitModel.getVisitorContact());
@@ -90,15 +88,18 @@ public class VisitorServiceImpl implements VisitorService {
                     if (!fileService.checkFileExist(visitModel.getVisitorImage())) {
                         throw new SpringVisitorException("Image " + visitModel.getVisitorImage() + " does not exist !! Add image first", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
                     }
-                    visitorDoc = mapperService.mapVisitModelToDoc(visitModel);
+                    visitorDoc = mapperService.mapAddNewVisitModelToEntity(visitModel);
                     visitorDoc = visitRepository.save(visitorDoc);
                 }
-                VisitingRecordDoc visitingRecordDoc = mapperService.mapVisitingRecordModelToDoc(visitModel.getVisitingRecord());
+                VisitingRecordDoc visitingRecordDoc = mapperService.mapAddNewVisitVisitingRecordToEntity(visitModel.getVisitingRecord());
                 visitingRecordDoc.setStatus(VisitingRecordDoc.Status.PENDING);
                 visitingRecordDoc.setVisitorId(visitorDoc.getId());
+
                 ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
                 visitingRecordDoc.setVisitedOn(nowInIndia.toInstant());
+
                 visitingRecordDoc = visitingRecordRepo.save(visitingRecordDoc);
+
                 TelegramMessageDto telegramMessage = new TelegramMessageDto(visitingRecordDoc.getId(), visitModel.getVisitorContact(), visitModel.getVisitorName(), visitModel.getVisitingRecord().getReason(), visitModel.getVisitorImage(), visitModel.getVisitingRecord().getVisitorHost(), visitModel.getVisitorAddress().getCity(), visitModel.getVisitorAddress().getLine1(), visitModel.getVisitorAddress().getPinCode());
                 telegramService.sendVisitMessageToHost(telegramMessage);
                 return "Visit successfully added for user " + visitModel.getVisitorName();
@@ -204,7 +205,6 @@ public class VisitorServiceImpl implements VisitorService {
         }
     }
 
-
     @Override
     public VisitingRecordPage visitsOfVisitor(String id, int pageNumber, int pageSize, String sortBy, String sortOrder) {
         if (sortBy != null) {
@@ -257,57 +257,43 @@ public class VisitorServiceImpl implements VisitorService {
         return getVisitorInRange(startDay, endDay, pageable, sortBy, sortOrder);
     }
 
-
     @Override
-    public VisitingRecordPage searchVisitor(List<SearchFilter> filters, int pageSize, int pageNumber, String sortBy, String sortOrder) {
-//        logger.info("Filter {} ", filters.toString());
-        if (sortBy != null) {
-            switch (sortBy) {
-                case "id":
-                case "visitorContact":
-                case "visitorName":
-                    break;
-                default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName' or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-            }
-        }
-        Pageable pageable;
-        if (sortBy != null) {
-            Sort.Direction direction = (sortOrder == null) ? Sort.Direction.ASC : Sort.Direction.valueOf(sortOrder);
-            pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
-        } else {
-            pageable = PageRequest.of(pageNumber, pageSize);
-        }
+    public PageResponse<VisitorDto> searchVisitor(VisitorFilterInput filter, PaginationInput pagination) {
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
 
-        Query query = new Query().with(pageable);
-        filters.forEach((filter) -> {
-            switch (filter.key()) {
-                case "Name":
-                    query.addCriteria(Criteria.where("visitorName").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE)));
-                    break;
-                case "Contact":
-                    query.addCriteria(Criteria.where("visitorContact").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE)));
-                    break;
-                case "Address": {
-                    query.addCriteria(new Criteria().orOperator(Criteria.where("visitorAddress.line1").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE)), Criteria.where("visitorAddress.city").regex(Pattern.compile(Pattern.quote(filter.value()) + ".*", Pattern.CASE_INSENSITIVE))));
-                    break;
-                }
-
-                case "IsUserBanned": {
-                    if (!filter.value().equals("true") && !filter.value().equals("false")) {
-                        throw new SpringVisitorException("User 'true' or 'false' only for IsUserBanned", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-                    }
-                    Boolean bool = Boolean.parseBoolean(filter.value());
-                    query.addCriteria(Criteria.where("banStatus.isVisitorBanned").is(bool));
-                    break;
-                }
-                default:
-                    throw new SpringVisitorException("Invalid filter key: Only Name, Contact, Address, ChildName are allowed!", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-            }
-        });
-        query.fields().include("_id").include("visitorContact").include("visitorName").include("visitorImage").include("banStatus").include("visitorAddress").include("visitorChildren");
-        Page<VisitorDoc> visitDocumentPage = PageableExecutionUtils.getPage(mongoTemplate.find(query, VisitorDoc.class), pageable, () -> mongoTemplate.count(query.skip(0).limit(0), VisitorDoc.class));
-        return new VisitingRecordPage(pageNumber, visitDocumentPage.getTotalPages(), visitDocumentPage.getContent(), pageSize, visitDocumentPage.getTotalElements());
+        if (filter.visitorContact() != null) {
+            criteria.add(Criteria.where("visitorContact").regex(filter.visitorContact(),"i"));
+        }
+        if (StringUtils.hasText(filter.visitorName())) {
+            criteria.add(
+                    Criteria.where("visitorName")
+                            .regex(filter.visitorName(), "i")
+            );
+        }
+        if (StringUtils.hasText(filter.visitorAddress())) {
+            criteria.add(new Criteria().orOperator(Criteria.where("visitorAddress.line1").regex(filter.visitorAddress(), "i"), Criteria.where("visitorAddress.city").regex(filter.visitorAddress(), "i"), Criteria.where("visitorAddress.state").regex(filter.visitorAddress(), "i"), Criteria.where("visitorAddress.country").regex(filter.visitorAddress(), "i"), Criteria.where("visitorAddress.pinCode").regex(filter.visitorAddress(), "i")));
+        }
+        if (StringUtils.hasText(filter.visitorChildrenName())) {
+            criteria.add(Criteria.where("visitorChildren.name").regex(filter.visitorChildrenName(), "i"));
+        }
+        if (!criteria.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        }
+        long totalData = mongoTemplate.count(query, VisitorDoc.class);
+        String sortBy = StringUtils.hasText(pagination.sortBy()) ? pagination.sortBy() : "_id";
+        Sort.Direction sortDirection = pagination.sortOrder() != null ? pagination.sortOrder() : Sort.Direction.DESC;
+        int pageNo = Math.max(pagination.pageNo(), 0);
+        int pageSize = pagination.pageSize() > 0 ? pagination.pageSize() : 10;
+        query.with(Sort.by(sortDirection, sortBy));
+        query.skip((long) pageNo * pageSize);
+        query.limit(pageSize);
+        List<VisitorDto> data = mongoTemplate.find(query, VisitorDoc.class).stream().map(mapperService::visitorDocToEntity).toList();
+        if (data.isEmpty()) {
+            return PageResponse.empty(pageNo, pageSize);
+        }
+        int totalPages = (int) Math.ceil((double) totalData / pageSize);
+        return new PageResponse<>(pageNo, pageSize, totalData, totalPages, data);
     }
 
     @Override
@@ -366,165 +352,84 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
-    public PageResponse<VisitingRecordWithVisitorInfo> search(
-            VisitFilterInput filter,
-            PaginationInput pagination
-    ) {
+    public PageResponse<VisitingRecordWithVisitorInfo> search(VisitFilterInput filter, PaginationInput pagination) {
+        if (filter == null) {
+            filter = new VisitFilterInput(
+                    null, null, null, null, null, null, null,null
+            );
+        }
 
+        if (pagination == null) {
+            pagination = new PaginationInput(
+                    0,
+                    10,
+                    "visitedOn",
+                    Sort.Direction.DESC
+            );
+        }
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
-
         // Date Filter
         if (filter.fromDate() != null || filter.toDate() != null) {
             Criteria dateCriteria = Criteria.where("visitedOn");
             if (filter.fromDate() != null) {
-                dateCriteria.gte(
-                        filter.fromDate()
-                                .atStartOfDay(ZoneId.of("Asia/Kolkata"))
-                                .toInstant()
-                );
+                dateCriteria.gte(filter.fromDate().atStartOfDay(ZoneId.of("Asia/Kolkata")).toInstant());
             }
             if (filter.toDate() != null) {
-                dateCriteria.lt(
-                        filter.toDate()
-                                .plusDays(1)
-                                .atStartOfDay(ZoneId.of("Asia/Kolkata"))
-                                .toInstant()
-                );
+                dateCriteria.lt(filter.toDate().plusDays(1).atStartOfDay(ZoneId.of("Asia/Kolkata")).toInstant());
             }
             criteria.add(dateCriteria);
         }
         // Status Filter
         if (filter.status() != null) {
-            criteria.add(
-                    Criteria.where("status")
-                            .is(filter.status())
-            );
+            criteria.add(Criteria.where("status").is(filter.status()));
         }
         // Host Filter
         if (StringUtils.hasText(filter.visitorHost())) {
-            criteria.add(
-                    Criteria.where("visitorHost")
-                            .regex(Pattern.quote(filter.visitorHost()), "i")
-            );
+            criteria.add(Criteria.where("visitorHost").regex(Pattern.quote(filter.visitorHost()), "i"));
         }
         // Reason Filter
         if (StringUtils.hasText(filter.reason())) {
-            criteria.add(
-                    Criteria.where("reason")
-                            .regex(Pattern.quote(filter.reason()), "i")
-            );
+            criteria.add(Criteria.where("reason").regex(Pattern.quote(filter.reason()), "i"));
         }
         // Visitor Filter
-        if (StringUtils.hasText(filter.visitorName())
-                || StringUtils.hasText(filter.visitorContact())) {
-            List<String> visitorIds =
-                    visitRepository.findIdsByFilter(
-                            filter.visitorName(),
-                            filter.visitorContact()
-                    );
+        if (StringUtils.hasText(filter.visitorName()) || StringUtils.hasText(filter.visitorContact())) {
+            List<String> visitorIds = visitRepository.findIdsByFilter(filter.visitorName(), filter.visitorContact());
             if (visitorIds.isEmpty()) {
-                return PageResponse.empty(
-                        pagination.pageNo(),
-                        pagination.pageSize()
-                );
+                return PageResponse.empty(pagination.pageNo(), pagination.pageSize());
             }
-            criteria.add(
-                    Criteria.where("visitorId")
-                            .in(visitorIds)
-            );
+            criteria.add(Criteria.where("visitorId").in(visitorIds));
+        }
+        if (StringUtils.hasText(filter.visitorId())) {
+            criteria.add(Criteria.where("visitorId").is(filter.visitorId()));
         }
         // Combine Criteria
         if (!criteria.isEmpty()) {
-            query.addCriteria(
-                    new Criteria().andOperator(
-                            criteria.toArray(new Criteria[0])
-                    )
-            );
+            query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
         }
         // Count Query
         Query countQuery = Query.of(query);
-        long totalData = mongoTemplate.count(
-                countQuery,
-                VisitingRecordDoc.class
-        );
+        long totalData = mongoTemplate.count(countQuery, VisitingRecordDoc.class);
         // Sorting
-        String sortBy = StringUtils.hasText(pagination.sortBy())
-                ? pagination.sortBy()
-                : "visitedOn";
-        Sort.Direction sortDirection =
-                pagination.sortOrder() != null
-                        ? pagination.sortOrder()
-                        : Sort.Direction.DESC;
-        query.with(
-                Sort.by(sortDirection, sortBy)
-        );
+        String sortBy = StringUtils.hasText(pagination.sortBy()) ? pagination.sortBy() : "visitedOn";
+        Sort.Direction sortDirection = pagination.sortOrder() != null ? pagination.sortOrder() : Sort.Direction.DESC;
+        query.with(Sort.by(sortDirection, sortBy));
         // Pagination
-        int pageNo = Math.max(
-                pagination.pageNo(),
-                0
-        );
-        int pageSize = pagination.pageSize() > 0
-                ? pagination.pageSize()
-                : 10;
-        query.skip(
-                (long) pageNo * pageSize
-        );
+        int pageNo = Math.max(pagination.pageNo(), 0);
+        int pageSize = pagination.pageSize() > 0 ? pagination.pageSize() : 10;
+        query.skip((long) pageNo * pageSize);
         query.limit(pageSize);
         // Fetch Data
-        List<VisitingRecordDoc> visits =
-                mongoTemplate.find(
-                        query,
-                        VisitingRecordDoc.class
-                );
+        List<VisitingRecordDoc> visits = mongoTemplate.find(query, VisitingRecordDoc.class);
         // Map to DTO
-        List<String> visitorIds = visits.stream()
-                .map(VisitingRecordDoc::getVisitorId)
-                .distinct()
-                .toList();
+        List<String> visitorIds = visits.stream().map(VisitingRecordDoc::getVisitorId).distinct().toList();
 
-        Map<String, VisitorDoc> visitorMap = visitRepository
-                .findAllById(visitorIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        VisitorDoc::getId,
-                        Function.identity()
-                ));
-        List<VisitingRecordWithVisitorInfo> data =
-                visits.stream()
-                        .map(visit -> {
-                            VisitorDoc visitor =
-                                    visitorMap.get(visit.getVisitorId());
-                            return new VisitingRecordWithVisitorInfo(
-                                    visit.getId(),
-                                    visit.getVisitedOn(),
-                                    visit.getReason(),
-                                    visit.getVisitorHost(),
-                                    visit.getStatus(),
-                                    visit.getNote(),
-                                    visitor == null
-                                            ? null
-                                            : new VisitingRecordWithVisitorInfo.VisitorInfo(
-                                            visitor.getId(),
-                                            visitor.getVisitorContact(),
-                                            visitor.getVisitorName(),
-                                            visitor.getVisitorImage()
-                                    )
-                            );
-                        })
-                        .toList();
-        int totalPages =
-                totalData == 0
-                        ? 0
-                        :(int) Math.ceil(
-                        (double) totalData / pageSize
-                );
-        return new PageResponse<>(
-                pageNo,
-                pageSize,
-                totalData,
-                totalPages,
-                data
-                );
+        Map<String, VisitorDoc> visitorMap = visitRepository.findAllById(visitorIds).stream().collect(Collectors.toMap(VisitorDoc::getId, Function.identity()));
+        List<VisitingRecordWithVisitorInfo> data = visits.stream().map(visit -> {
+            VisitorDoc visitor = visitorMap.get(visit.getVisitorId());
+            return new VisitingRecordWithVisitorInfo(visit.getId(), visit.getVisitedOn(), visit.getReason(), visit.getVisitorHost(), visit.getStatus(), visit.getNote(), visitor == null ? null : new VisitingRecordWithVisitorInfo.VisitorInfo(visitor.getId(), visitor.getVisitorContact(), visitor.getVisitorName(), visitor.getVisitorImage()));
+        }).toList();
+        int totalPages = totalData == 0 ? 0 : (int) Math.ceil((double) totalData / pageSize);
+        return new PageResponse<>(pageNo, pageSize, totalData, totalPages, data);
     }
 }

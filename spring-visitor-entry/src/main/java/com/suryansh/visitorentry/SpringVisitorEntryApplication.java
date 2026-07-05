@@ -38,12 +38,20 @@ public class SpringVisitorEntryApplication {
         SpringApplication.run(SpringVisitorEntryApplication.class, args);
     }
 
-    @Bean
-    public TelegramBotsApi telegramBotsApi(MyTelegramBot bot) throws Exception {
-        TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
-        api.registerBot(bot);
-        return api;
-    }
+//    @Bean
+//    public TelegramBotsApi telegramBotsApi(MyTelegramBot bot) throws Exception {
+//        try {
+//            TelegramBotsApi api =
+//                    new TelegramBotsApi(DefaultBotSession.class);
+//            api.registerBot(bot);
+//            System.out.println("Telegram Bot Started");
+//            return api;
+//        } catch (Exception e) {
+//            System.err.println("Telegram Bot Startup Failed");
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
 
 }
 

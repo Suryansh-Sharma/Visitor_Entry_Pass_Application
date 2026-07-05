@@ -2,6 +2,7 @@ package com.suryansh.visitorentry.service.interfaces;
 
 import com.suryansh.visitorentry.dto.*;
 import com.suryansh.visitorentry.entity.VisitorDoc;
+import com.suryansh.visitorentry.model.AddNewVisitModel;
 import com.suryansh.visitorentry.model.SearchFilter;
 import com.suryansh.visitorentry.model.VisitModel;
 
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface VisitorService {
-    CompletableFuture<String> addNewVisitInDb(VisitModel visitModel);
+    CompletableFuture<String> addNewVisitInDb(AddNewVisitModel visitModel);
 
     String handleBanVisitor(String visitorId, String reason);
 
@@ -24,7 +25,7 @@ public interface VisitorService {
 
     PaginationDto getVisitorOnSpecificDate(LocalDate date, int pageSize, int pageNumber, String sortBy, String sortOrder);
 
-    VisitingRecordPage searchVisitor(List<SearchFilter> filters, int pageSize, int pageNumber, String sortBy, String sortOrder);
+    PageResponse<VisitorDto> searchVisitor(VisitorFilterInput filter,PaginationInput pagination);
 
     PaginationDto handleGetVisitorsInPeriod(String fromDate, String toDate, int pageSize, int pageNumber, String sortBy, String sortOrder);
 

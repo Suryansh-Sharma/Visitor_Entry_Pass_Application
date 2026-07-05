@@ -57,7 +57,8 @@ public class SecurityConfig {
                                 "/favicon.ico",
                                 "/error",
                                 "/api/application/**",
-                                "/api/auth/**"
+                                "/api/auth/**",
+                                "/api/v1/file/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**")
                         .permitAll()

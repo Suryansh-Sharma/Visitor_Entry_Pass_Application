@@ -150,7 +150,7 @@ public class UserServiceImpl implements UserService {
         UserDocument.RefreshToken refreshToken = new UserDocument.RefreshToken(
                 UUID.randomUUID().toString(),
                 nowInIndia.toInstant(),
-                nowInIndia.plusDays(1).toInstant() // Expires in 1 day
+                nowInIndia.plusDays(30).toInstant()
         );
         if (checkDocument.getRefreshTokens() != null) {
             // Remove Old ExpiredToken
