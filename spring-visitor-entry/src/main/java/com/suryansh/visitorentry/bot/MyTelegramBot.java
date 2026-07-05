@@ -56,25 +56,32 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         if (data == null || !data.startsWith("VISIT|")) {
             return;
         }
-        try {
-            String[] parts = data.split("\\|");
-            if (parts.length != 3) {
-                logger.warn("Invalid callback data: {}", data);
-                return;
-            }
-            String action = parts[1];
-            String visitId = parts[2];
-            // Process the visitor request
-            if ("ACCEPT".equals(action) || "REJECT".equals(action)) {
-                String message = listenTelegramEvent.manageVisitorReq(visitId, action);
-                webSocketService.sendVisitUpdate(visitId, action, message);
-                acknowledgeCallback(callbackQuery, action, message);
-            } else {
-                logger.warn("Unknown action: {}", action);
-            }
-        } catch (Exception e) {
-            logger.error("Error processing callbackQuery", e);
+        String[] parts = data.split("\\|");
+        if (parts.length != 3) {
+            logger.warn("Invalid callback data: {}", data);
+            return;
         }
+        String action = parts[1];
+        String visitId = parts[2];
+        if (!"ACCEPT".equals(action) && !"REJECT".equals(action)) {
+            logger.warn("Unknown action: {}", action);
+            return;
+        }
+        logger.info("Telegram callback: action={}, visitId={}", action, visitId);
+        String message;
+        try {
+            message = listenTelegramEvent.manageVisitorReq(visitId, action);
+        } catch (Exception e) {
+            logger.error("Error processing visit request for visitId={}", visitId, e);
+            message = "❌ Error processing visitor request";
+        }
+        try {
+            webSocketService.sendVisitUpdate(visitId, action, message);
+            logger.info("WebSocket notification sent for visitId={} action={}", visitId, action);
+        } catch (Exception e) {
+            logger.error("Failed to send WebSocket update for visitId={}", visitId, e);
+        }
+        acknowledgeCallback(callbackQuery, action, message);
     }
 
     public void acknowledgeCallback(CallbackQuery callbackQuery,

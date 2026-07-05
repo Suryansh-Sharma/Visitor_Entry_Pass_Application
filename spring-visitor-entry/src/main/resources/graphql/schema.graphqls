@@ -1,24 +1,15 @@
 scalar LocalDateTime
 scalar LocalDate
-type Subscription {
-    notifyVisitStatusSubscription: NotifyVisitStatus
-}
 type Query {
     visits(filter:VisitFilterInput,pagination:PaginationInput):PagingVisitDto!
 
     searchVisitor(filter:VisitorFilterInput,pagination:PaginationInput):VisitorPagination!
-
-    getVisit(id: ID!): String
 
     getVisitorByContact(visitorContact: String!):VisitorDto
 
     getVisitorById(visitorId:String!):VisitorDto
 
     getVisitOfVisitor(id:String,page_size:Int=10,page_number:Int=0,sort_by:String,sort_order:SortDirection):VisitingRecordPage
-
-    getVisitorOnSpecificDate(date:String!,page_size:Int=10,page_number:Int=0,sort_by:String,sort_order:SortDirection):PagingVisitDto
-
-    getVisitorsOnPeriod(from_date:String!,to_date:String!,page_size:Int=10,page_number:Int=0,,sort_by:String,sort_order:SortDirection):PagingVisitDto
 
     getAllTelegramIds:[TelegramIdDto]
 
@@ -51,24 +42,14 @@ type Mutation {
     handleLogout(authorization: String!,refreshToken:String!):String
 
     forgetPassword(username:String!):String
-    
-    testTelegram(id:String!):String
 }
 
 # Input Model
-input SearchFilter{
-    key:String,
-    value:String
-}
 input UserInput{
     username:String!
     contact:String!
     password:String!
     role:Role!
-}
-input UserLoginInput{
-    contact:String!
-    password:String!
 }
 input AddNewVisitModel {
     visitorContact: String!

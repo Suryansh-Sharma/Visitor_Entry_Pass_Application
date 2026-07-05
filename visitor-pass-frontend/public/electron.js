@@ -1,100 +1,137 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
+const fs = require("fs");
+const http = require("http");
+const { spawn } = require("child_process");
 const isDev = process.env.NODE_ENV === "development";
 const log = require("electron-log");
-const http = require("http");
-let mainWindow;
-let backendProcess = null;
 
-// Configure electron-log
 log.transports.file.level = "info";
 log.transports.file.file = path.join(app.getPath("userData"), "app.log");
 log.transports.console.level = "info";
 
-const startBackend = () => {
-  console.log("Directry " + __dirname);
-  console.log("App Path:", app.getAppPath());
-  console.log("Resources Path:", process.resourcesPath);
+let mainWindow;
+let backendProcess = null;
+let healthCheckTimer = null;
+const HEALTH_URL = "http://localhost:8080/api/application/health";
+const HEALTH_POLL_INTERVAL = 2000;
+const HEALTH_TIMEOUT_MS = 120000; // 2 minutes max wait
+
+// ─── Backend startup ────────────────────────────────────────────────────────
+
+function setupUserData() {
+  const userImagesPath = path.join(app.getPath("userData"), "User_Images");
+  if (!fs.existsSync(userImagesPath)) {
+    fs.mkdirSync(userImagesPath, { recursive: true });
+    log.info("Created User_Images folder at:", userImagesPath);
+  }
+
+  const defaultImageDest = path.join(userImagesPath, "default-visitor.png");
+  if (!fs.existsSync(defaultImageDest)) {
+    const defaultImageSrc = isDev
+      ? path.join(__dirname, "../public/assets/default-visitor.png")
+      : path.join(process.resourcesPath, "assets", "default-visitor.png");
+    if (fs.existsSync(defaultImageSrc)) {
+      fs.copyFileSync(defaultImageSrc, defaultImageDest);
+      log.info("Copied default visitor image to userData");
+    }
+  }
+
+  return userImagesPath;
+}
+
+function startBackend() {
+  const userImagesPath = setupUserData();
+
   const jarPath = isDev
-    ? path.join(
-        __dirname,
-        "../extraResources/spring-visitor-entry-0.0.1-SNAPSHOT.jar"
-      )
-    : path.join(
-        process.resourcesPath,
-        "extraResources",
-        "spring-visitor-entry-0.0.1-SNAPSHOT.jar"
-      );
+    ? path.join(__dirname, "../extraResources/spring-visitor-entry-0.0.1-SNAPSHOT.jar")
+    : path.join(process.resourcesPath, "extraResources", "spring-visitor-entry-0.0.1-SNAPSHOT.jar");
 
-  console.log("Resolved JAR Path:", jarPath);
+  log.info("JAR path:", jarPath);
+  log.info("User Images path:", userImagesPath);
 
-  const backendProcess = require("child_process").spawn(
+  backendProcess = spawn(
     "java",
-    ["-jar", jarPath],
+    [`-DUSER_IMAGES_PATH=${userImagesPath}${path.sep}`, "-jar", jarPath],
     { shell: true }
   );
 
-  backendProcess.stdout.on("data", (data) => {
-    log.info(`[Backend stdout]: ${data.toString()}`);
+  backendProcess.stdout.on("data", (d) => log.info("[Backend]", d.toString().trim()));
+  backendProcess.stderr.on("data", (d) => log.error("[Backend ERR]", d.toString().trim()));
+  backendProcess.on("error", (e) => {
+    log.error("Backend spawn error:", e.message);
+    sendToRenderer("backend:error", "Failed to start the backend. Is Java installed?");
   });
-
-  backendProcess.stderr.on("data", (data) => {
-    // console.error(`[Backend stderr]: ${data.toString()}`);
-    log.error(`[Backend stderr]: ${data.toString()}`);
-  });
-
-  backendProcess.on("error", (error) => {
-    // console.error(`Error starting backend: ${error.message}`);
-    log.error(`Backend process error: ${error.message}`);
-  });
-
   backendProcess.on("close", (code) => {
-    // console.log(`Backend process exited with code ${code}`);
-    log.info(`Backend process exited with code ${code}`);
+    log.info("Backend exited with code", code);
+    if (code !== 0 && code !== null) {
+      sendToRenderer("backend:error", `Backend crashed (exit code ${code}). Check logs.`);
+    }
   });
-
-  return backendProcess;
-};
-
-// Function to stop the backend
-function stopBackend() {
-  const shutdownEndpoint =
-    "http://localhost:8080/shutdown-spring-backend-visitor-entry-pass";
-
-  http
-    .get(shutdownEndpoint, (res) => {
-      if (res.statusCode === 200) {
-        // log.info("Backend shutdown initiated successfully.");
-        mainWindow.webContents.send(
-          "show-alert",
-          "The backend is shutting down!"
-        );
-      } else {
-        // log.error("Failed to initiate backend shutdown.");
-        mainWindow.webContents.send(
-          "show-alert",
-          "Error: Could not shut down the backend."
-        );
-      }
-    })
-    .on("error", (error) => {
-      // log.error("An error occurred during shutdown:", error);
-      mainWindow.webContents.send(
-        "show-alert",
-        "Error: Unable to connect to the backend."
-      );
-    });
 }
 
-app.whenReady().then(() => {
-  startUi();
-  setTimeout(() => startBackend(), 500);
-});
+// ─── Health polling ──────────────────────────────────────────────────────────
 
-const startUi=()=>{
+function pollHealth(startedAt) {
+  http.get(HEALTH_URL, { timeout: 3000 }, (res) => {
+    if (res.statusCode === 200) {
+      clearTimeout(healthCheckTimer);
+      log.info("Backend is healthy ✅");
+      sendToRenderer("backend:ready", null);
+    } else {
+      scheduleNextPoll(startedAt);
+    }
+    res.resume();
+  }).on("error", () => {
+    scheduleNextPoll(startedAt);
+  });
+}
+
+function scheduleNextPoll(startedAt) {
+  const elapsed = Date.now() - startedAt;
+  if (elapsed >= HEALTH_TIMEOUT_MS) {
+    log.error("Backend did not become healthy within timeout");
+    sendToRenderer("backend:error", "Backend took too long to start. Check if Java is installed and the JAR is valid.");
+    return;
+  }
+
+  const remaining = Math.ceil((HEALTH_TIMEOUT_MS - elapsed) / 1000);
+  sendToRenderer("backend:starting", `Starting server... (${remaining}s remaining)`);
+  healthCheckTimer = setTimeout(() => pollHealth(startedAt), HEALTH_POLL_INTERVAL);
+}
+
+// ─── Shutdown ────────────────────────────────────────────────────────────────
+
+function stopBackend() {
+  if (!backendProcess) return;
+
+  http.get(
+    "http://localhost:8080/api/application/shutdown-spring-backend-visitor-entry-pass",
+    { timeout: 3000 },
+    (res) => res.resume()
+  ).on("error", () => {
+    // Graceful HTTP shutdown failed — force kill
+    if (backendProcess) backendProcess.kill("SIGTERM");
+  });
+}
+
+// ─── IPC helpers ─────────────────────────────────────────────────────────────
+
+function sendToRenderer(channel, data) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+    mainWindow.webContents.send(channel, data);
+  }
+}
+
+// ─── Window ──────────────────────────────────────────────────────────────────
+
+function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    show: false, // Don't flash blank window — show after content loads
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -102,24 +139,50 @@ const startUi=()=>{
   });
 
   if (isDev) {
-    mainWindow.loadURL("http://localhost:3000");
+    mainWindow.loadURL("http://localhost:5173");
   } else {
-    const reactBuildPath = path.join(__dirname, "../build/index.html");
-    mainWindow.loadFile(reactBuildPath);
+    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  // Show window once the page has painted — no white flash
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+    mainWindow.maximize();
+  });
+
   mainWindow.on("closed", () => {
+    clearTimeout(healthCheckTimer);
     stopBackend();
-    app.quit();
+    mainWindow = null;
   });
 }
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    if (backendProcess) {
-      backendProcess.kill("SIGINT");
-    }
+// ─── App lifecycle ────────────────────────────────────────────────────────────
 
+app.whenReady().then(() => {
+  createWindow();
+
+  if (isDev) {
+    // In dev, backend is started manually — just signal ready immediately
+    mainWindow.webContents.once("did-finish-load", () => {
+      sendToRenderer("backend:ready", null);
+    });
+  } else {
+    startBackend();
+    // Wait for the page to load before starting health polls
+    // so the renderer is ready to receive IPC messages
+    mainWindow.webContents.once("did-finish-load", () => {
+      const startedAt = Date.now();
+      sendToRenderer("backend:starting", "Starting server...");
+      pollHealth(startedAt);
+    });
+  }
+});
+
+app.on("window-all-closed", () => {
+  clearTimeout(healthCheckTimer);
+  if (process.platform !== "darwin") {
+    if (backendProcess) backendProcess.kill("SIGTERM");
     app.quit();
   }
 });

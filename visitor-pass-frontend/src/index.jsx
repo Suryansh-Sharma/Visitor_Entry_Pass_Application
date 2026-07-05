@@ -11,6 +11,7 @@ import { jwtDecode } from "jwt-decode";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import BackendGate from "./components/BackendGate";
 import Context from "./context/VisitorEntryPassContext";
 import { REGEN_JWT_TOKEN } from "./graphQl/queries";
 
@@ -133,10 +134,12 @@ const client = new ApolloClient({
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <ApolloProvider client={client}>
-      <Context>
-        <App />
-      </Context>
-    </ApolloProvider>
+    <BackendGate>
+      <ApolloProvider client={client}>
+        <Context>
+          <App />
+        </Context>
+      </ApolloProvider>
+    </BackendGate>
   </React.StrictMode>,
 );
