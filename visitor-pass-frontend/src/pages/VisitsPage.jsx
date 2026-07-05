@@ -1,7 +1,10 @@
+import {
+  CalendarOutlined,
+  ClearOutlined,
+  PhoneOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import { useQuery } from "@apollo/client";
-import { useState } from "react";
-import { LoadingComponent } from "../components/LoadingComponent";
-import { SEARCH_VISITS } from "../graphQl/queries";
 import {
   Button,
   Card,
@@ -13,12 +16,8 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import {
-  CalendarOutlined,
-  ClearOutlined,
-  PhoneOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { useState } from "react";
+import { SEARCH_VISITS } from "../graphQl/queries";
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 function VisitsPage() {
@@ -29,15 +28,16 @@ function VisitsPage() {
     sortBy: "visitedOn",
     sortOrder: "DESC",
   });
-  const [filters, SetFilters] = useState({
+  const [formFilter, setFormFilter] = useState({
     visitorName: "",
     visitorContact: "",
     status: undefined,
     fromDate: todayDate,
     toDate: todayDate,
   });
+  const [filters, SetFilters] = useState(formFilter);
 
-  const { data, loading, error } = useQuery(SEARCH_VISITS, {
+  const { data, loading } = useQuery(SEARCH_VISITS, {
     variables: {
       filter: {
         visitorName: filters.visitorName.trim() || undefined,
@@ -62,45 +62,49 @@ function VisitsPage() {
     pageSize: 0,
   };
 
-  const handleFilterChange = (field, value) => {
-    SetFilters((prev) => ({ ...prev, [field]: value }));
-    SetPagination((prev) => ({ ...prev, pageNo: 0 }));
-  };
-
   const handleDateRangeChange = (dates) => {
-    SetFilters((prev) => ({
+    setFormFilter((prev) => ({
       ...prev,
       fromDate: dates ? dates[0].format("YYYY-MM-DD") : null,
       toDate: dates ? dates[1].format("YYYY-MM-DD") : null,
     }));
-    SetPagination((prev) => ({ ...prev, pageNo: 0 }));
   };
 
   const resetAllFilters = () => {
-    SetFilters({
+    const clearedFilters = {
       visitorName: "",
       visitorContact: "",
       status: undefined,
       fromDate: null,
       toDate: null,
-    });
-    SetPagination((prev) => ({ ...prev, pageNo: 0 }));
+    };
+
+    setFormFilter(clearedFilters);
+    SetFilters(clearedFilters);
+
+    SetPagination((prev) => ({
+      ...prev,
+      pageNo: 0,
+    }));
   };
 
   const handleResetToToday = () => {
-    SetFilters({
+    const todayFilters = {
       visitorName: "",
       visitorContact: "",
       status: undefined,
       fromDate: todayDate,
       toDate: todayDate,
-    });
-    SetPagination((prev) => ({ ...prev, pageNo: 0 }));
-  };
+    };
 
-  if (loading) {
-    return <LoadingComponent text={"Please Wait, Data is Loading"} />;
-  }
+    setFormFilter(todayFilters);
+    SetFilters(todayFilters);
+
+    SetPagination((prev) => ({
+      ...prev,
+      pageNo: 0,
+    }));
+  };
 
   const columns = [
     {
@@ -217,9 +221,12 @@ function VisitsPage() {
               <Input
                 placeholder="Search visitor name..."
                 prefix={<SearchOutlined className="text-slate-400" />}
-                value={filters.visitorName}
+                value={formFilter.visitorName}
                 onChange={(e) =>
-                  handleFilterChange("visitorName", e.target.value)
+                  setFormFilter((prev) => ({
+                    ...prev,
+                    visitorName: e.target.value,
+                  }))
                 }
                 className="h-10 rounded-lg text-sm"
                 allowClear
@@ -228,9 +235,12 @@ function VisitsPage() {
               <Input
                 placeholder="Search contact no..."
                 prefix={<PhoneOutlined className="text-slate-400" />}
-                value={filters.visitorContact}
+                value={formFilter.visitorContact}
                 onChange={(e) =>
-                  handleFilterChange("visitorContact", e.target.value)
+                  setFormFilter((prev) => ({
+                    ...prev,
+                    visitorContact: e.target.value,
+                  }))
                 }
                 className="h-10 rounded-lg text-sm"
                 allowClear
@@ -238,13 +248,18 @@ function VisitsPage() {
 
               <Select
                 placeholder="Select Status"
-                value={filters.status}
-                onChange={(val) => handleFilterChange("status", val)}
+                value={formFilter.status}
+                onChange={(val) =>
+                  setFormFilter((prev) => ({
+                    ...prev,
+                    status: val,
+                  }))
+                }
                 className="h-10 rounded-lg text-sm w-full"
                 allowClear
                 options={[
                   { value: "PENDING", label: "Pending" },
-                  { value: "APPROVED", label: "Approved" },
+                  { value: "ACCEPTED", label: "Accepted" },
                   { value: "COMPLETED", label: "Completed" },
                   { value: "REJECTED", label: "Rejected" },
                 ]}
@@ -253,8 +268,8 @@ function VisitsPage() {
               {/* AntD RangePicker reading the state wrapper objects properly */}
               <RangePicker
                 value={
-                  filters.fromDate
-                    ? [dayjs(filters.fromDate), dayjs(filters.toDate)]
+                  formFilter.fromDate
+                    ? [dayjs(formFilter.fromDate), dayjs(formFilter.toDate)]
                     : null
                 }
                 onChange={handleDateRangeChange}
@@ -264,6 +279,21 @@ function VisitsPage() {
 
             {/* Reset Actions Cluster */}
             <div className="flex gap-2 self-start xl:self-auto">
+              <Button
+                type="primary"
+                icon={<SearchOutlined />}
+                className="h-10 rounded-lg"
+                onClick={() => {
+                  SetPagination((prev) => ({
+                    ...prev,
+                    pageNo: 0,
+                  }));
+
+                  SetFilters(formFilter);
+                }}
+              >
+                Search
+              </Button>
               <Button
                 type="default"
                 onClick={handleResetToToday}

@@ -32,9 +32,11 @@
     "vite:dev": "vite",
     "electron:start": "cross-env NODE_ENV=development concurrently \"npm run vite:dev\" \"electron . --no-sandbox\"",
     "build": "vite build",
-    "electron:build": "cross-env NODE_ENV=production npm run build && electron-builder"
+    "electron:build": "cross-env NODE_ENV=production npm run build && electron-builder",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.5.0",
     "concurrently": "^9.1.0",
@@ -43,6 +45,11 @@
     "electron-builder": "^25.1.8",
     "electron-is-dev": "^3.0.1",
     "electron-packager": "^17.1.2",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.6.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "vite": "^6.4.3"

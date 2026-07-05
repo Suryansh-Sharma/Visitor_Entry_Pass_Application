@@ -56,6 +56,7 @@ const reGenerateToken = async () => {
     userInfo.credentials.refreshToken.token = newRefreshToken;
     userInfo.credentials.refreshToken.generatedOn = generatedOn;
     userInfo.credentials.refreshToken.expiresOn = expiresOn;
+    userInfo.credentials.jwtToken.token = newJwtToken;
     localStorage.setItem("userInfo", JSON.stringify(userInfo));
     return newJwtToken;
   } catch (e) {
@@ -126,6 +127,7 @@ const authLink = setContext(async (_, { headers }) => {
 const client = new ApolloClient({
   link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
+  connectToDevTools: true,
 });
 
 const root = ReactDOM.createRoot(document.getElementById("root"));

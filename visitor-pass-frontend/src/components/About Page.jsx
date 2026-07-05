@@ -1,23 +1,22 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Card, Button, Typography, Space, Divider } from "antd";
+import { Button, Card, Divider, Typography } from "antd";
 import {
   CalendarOutlined,
-  UserAddOutlined,
+  DesktopOutlined,
+  HeartFilled,
+  HistoryOutlined,
+  IdcardOutlined,
+  MailOutlined,
+  RobotOutlined,
   SearchOutlined,
   SendOutlined,
-  IdcardOutlined,
-  HistoryOutlined,
-  RobotOutlined,
-  DesktopOutlined,
-  MailOutlined,
-  HeartFilled,
+  UserAddOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
 
 function AboutPage() {
-  const today = new Date().toISOString().split("T")[0];
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,7 +28,7 @@ function AboutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none">
       {/* Premium Gradient Header Hero */}
       <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white py-16 px-4 text-center shadow-md">
         <div className="max-w-3xl mx-auto">
@@ -57,12 +56,8 @@ function AboutPage() {
               type="default"
               size="large"
               icon={<CalendarOutlined />}
-              onClick={() =>
-                navigateTo(
-                  `/visits-by-date/${today}?page_no=0&page_size=8&sort_by=visitedOn&sort_order=ASC`,
-                )
-              }
-              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-indigo-600 hover:!text-indigo-500 hover:!border-indigo-300"
+              onClick={() => navigateTo(`/all-visit`)}
+              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-indigo-600 hover:!text-indigo-500 hover:!border-indigo-300 text-sm"
             >
               Today's Visits
             </Button>
@@ -72,7 +67,7 @@ function AboutPage() {
               size="large"
               icon={<UserAddOutlined />}
               onClick={() => navigateTo("/add-visit")}
-              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-emerald-600 hover:!text-emerald-500 hover:!border-emerald-300"
+              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-emerald-600 hover:!text-emerald-500 hover:!border-emerald-300 text-sm"
             >
               Add New Visit
             </Button>
@@ -81,12 +76,8 @@ function AboutPage() {
               type="default"
               size="large"
               icon={<SearchOutlined />}
-              onClick={() =>
-                navigateTo(
-                  "/search/visitor/Name/none?page_no=0&page_size=8&sort_by=visitorName&sort_dir=ASC",
-                )
-              }
-              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-sky-600 hover:!text-sky-500 hover:!border-sky-300"
+              onClick={() => navigateTo("/search")}
+              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-sky-600 hover:!text-sky-500 hover:!border-sky-300 text-sm"
             >
               Search Visitor
             </Button>
@@ -96,7 +87,7 @@ function AboutPage() {
               size="large"
               icon={<SendOutlined />}
               onClick={() => navigateTo("/telegramId")}
-              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-violet-600 hover:!text-violet-500 hover:!border-violet-300"
+              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-violet-600 hover:!text-violet-500 hover:!border-violet-300 text-sm"
             >
               Telegram IDs
             </Button>
@@ -106,18 +97,91 @@ function AboutPage() {
         <Divider className="border-slate-200" />
 
         {/* Core System Architectural Narrative */}
-        <section className="text-center max-w-2xl mx-auto">
-          <Title level={4} className="!font-bold !text-slate-800 !mb-3">
-            System Description
-          </Title>
-          <Paragraph className="text-slate-600 leading-relaxed text-sm">
-            This dashboard streamlines verification tracking protocols using a
-            cross-platform pipeline. Leveraging high-performance backend
-            microservices built with **Java Spring Boot**, a fluid web layer via
-            **React JS**, native operating system flexibility via **Electron**,
-            and a schema-free **MongoDB** database, it provides an uncompromised
-            enterprise-grade ecosystem tailored for modern workspaces.
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+          {/* Left-Aligned Clean Section Heading */}
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 block mb-1">
+              System Overview
+            </span>
+            <Title
+              level={4}
+              className="!font-extrabold !text-slate-800 !m-0 tracking-tight"
+            >
+              Core Application Architecture
+            </Title>
+          </div>
+
+          <Paragraph className="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed max-w-3xl">
+            The Visitor Entry Pass System is engineered as an enterprise-grade
+            ecosystem. It leverages high-performance microservices and native
+            window wrappers to achieve near-zero latency authorization logs
+            across distributed local networks.
           </Paragraph>
+
+          <Divider className="border-slate-100 !my-4" />
+
+          {/* Scannable Technology Badge Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Node 1: Java Backend */}
+            <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3.5 flex flex-col justify-between transition-all hover:bg-slate-50">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
+                Backend Core
+              </span>
+              <div>
+                <span className="font-extrabold text-slate-800 text-sm block">
+                  Java Spring Boot
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                  REST & GraphQL APIs
+                </span>
+              </div>
+            </div>
+
+            {/* Node 2: React Frontend */}
+            <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3.5 flex flex-col justify-between transition-all hover:bg-slate-50">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
+                Interface Layer
+              </span>
+              <div>
+                <span className="font-extrabold text-slate-800 text-sm block">
+                  React JS
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                  Ant Design & Tailwind
+                </span>
+              </div>
+            </div>
+
+            {/* Node 3: Electron Wrapper */}
+            <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3.5 flex flex-col justify-between transition-all hover:bg-slate-50">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
+                Desktop Native
+              </span>
+              <div>
+                <span className="font-extrabold text-slate-800 text-sm block">
+                  Electron Framework
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                  Cross-Platform Runtime
+                </span>
+              </div>
+            </div>
+
+            {/* Node 4: MongoDB Database */}
+            <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3.5 flex flex-col justify-between transition-all hover:bg-slate-50">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
+                Data Engine
+              </span>
+              <div>
+                <span className="font-extrabold text-slate-800 text-sm block">
+                  MongoDB Atlas
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                  Document Storage Schemas
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Feature Grid Architecture */}
@@ -126,19 +190,20 @@ function AboutPage() {
             Key Functional Modules
           </Title>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* 💡 FIXED GRID CLASSES: Cleared strange column assignments for balanced structural symmetry */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <Card
               hoverable
               className="border-slate-200/70 shadow-sm rounded-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-lg flex items-center justify-center">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-lg flex items-center justify-center flex-shrink-0">
                   <IdcardOutlined />
                 </div>
                 <div>
                   <Title
                     level={5}
-                    className="!m-0 !font-semibold text-slate-800"
+                    className="!m-0 !font-semibold text-slate-800 text-sm"
                   >
                     Visitor Registration
                   </Title>
@@ -155,13 +220,13 @@ function AboutPage() {
               className="border-slate-200/70 shadow-sm rounded-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-sky-50 text-sky-600 rounded-xl text-lg flex items-center justify-center">
+                <div className="p-2.5 bg-sky-50 text-sky-600 rounded-xl text-lg flex items-center justify-center flex-shrink-0">
                   <SearchOutlined />
                 </div>
                 <div>
                   <Title
                     level={5}
-                    className="!m-0 !font-semibold text-slate-800"
+                    className="!m-0 !font-semibold text-slate-800 text-sm"
                   >
                     Search & Lookup
                   </Title>
@@ -178,13 +243,13 @@ function AboutPage() {
               className="border-slate-200/70 shadow-sm rounded-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-lg flex items-center justify-center">
+                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-lg flex items-center justify-center flex-shrink-0">
                   <DesktopOutlined />
                 </div>
                 <div>
                   <Title
                     level={5}
-                    className="!m-0 !font-semibold text-slate-800"
+                    className="!m-0 !font-semibold text-slate-800 text-sm"
                   >
                     Multi-Platform Access
                   </Title>
@@ -198,16 +263,16 @@ function AboutPage() {
 
             <Card
               hoverable
-              className="border-slate-200/70 shadow-sm rounded-xl md:col-start-1 md:col-end-2"
+              className="border-slate-200/70 shadow-sm rounded-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl text-lg flex items-center justify-center">
+                <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl text-lg flex items-center justify-center flex-shrink-0">
                   <HistoryOutlined />
                 </div>
                 <div>
                   <Title
                     level={5}
-                    className="!m-0 !font-semibold text-slate-800"
+                    className="!m-0 !font-semibold text-slate-800 text-sm"
                   >
                     Log History
                   </Title>
@@ -221,16 +286,16 @@ function AboutPage() {
 
             <Card
               hoverable
-              className="border-slate-200/70 shadow-sm rounded-xl md:col-start-2 md:col-end-3"
+              className="border-slate-200/70 shadow-sm rounded-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-violet-50 text-violet-600 rounded-xl text-lg flex items-center justify-center">
+                <div className="p-2.5 bg-violet-50 text-violet-600 rounded-xl text-lg flex items-center justify-center flex-shrink-0">
                   <RobotOutlined />
                 </div>
                 <div>
                   <Title
                     level={5}
-                    className="!m-0 !font-semibold text-slate-800"
+                    className="!m-0 !font-semibold text-slate-800 text-sm"
                   >
                     Telegram Engine
                   </Title>

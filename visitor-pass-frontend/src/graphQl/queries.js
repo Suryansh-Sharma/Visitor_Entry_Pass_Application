@@ -201,42 +201,38 @@ export const GET_VISITOR_POFILE_BY_CONTACT = gql`
 
 export const SEARCH_VISITOR = gql`
   query SearchVisitor(
-    $filters: [SearchFilter]!
-    $pageSize: Int
-    $pageNumber: Int
-    $sort_by: String
-    $sort_order: SortDirection
+    $filter: VisitorFilterInput!
+    $pagination: PaginationInput!
   ) {
-    searchVisitor(
-      filters: $filters
-      pageSize: $pageSize
-      pageNumber: $pageNumber
-      sort_by: $sort_by
-      sort_order: $sort_order
-    ) {
+    searchVisitor(filter: $filter, pagination: $pagination) {
       pageNo
       pageSize
+      totalPages
+      totalData
       data {
         id
         visitorContact
         visitorName
+        visitorImage
+        hasChildrenInSchool
+        lastVisitedOn
         banStatus {
           bannedOn
           isVisitorBanned
           reason
         }
         visitorAddress {
-          city
           line1
+          city
+          state
+          country
+          pinCode
         }
-        visitorImage
         visitorChildren {
           name
           standard
         }
       }
-      totalPages
-      totalData
     }
   }
 `;
@@ -358,6 +354,26 @@ export const SEARCH_VISITS = gql`
           visitorName
           visitorImage
         }
+      }
+    }
+  }
+`;
+
+export const SEARCH_VISITS_OF_VISITOR = gql`
+  query SearchVisits($filter: VisitFilterInput, $pagination: PaginationInput) {
+    visits(filter: $filter, pagination: $pagination) {
+      pageNo
+      pageSize
+      totalData
+      totalPages
+
+      data {
+        id
+        visitedOn
+        reason
+        visitorHost
+        status
+        note
       }
     }
   }

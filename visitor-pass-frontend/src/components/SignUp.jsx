@@ -5,7 +5,7 @@ import { useNavigate } from "react-router";
 import Swal from "sweetalert2";
 import "../css/Common.css";
 import { Registor_New_User } from "../graphQl/queries";
-import LoadingPage from "./LoadingPage";
+import { LoadingComponent } from "./LoadingComponent";
 export default function SignUp() {
   const navigate = useNavigate();
   const [signUpApi, { loading }] = useMutation(Registor_New_User, {
@@ -48,7 +48,7 @@ export default function SignUp() {
       navigate("/", { replace: true });
       localStorage.setItem(
         "userInfo",
-        JSON.stringify(response.data.registerNewUser)
+        JSON.stringify(response.data.registerNewUser),
       );
       document.location.reload();
     } catch (error) {
@@ -61,7 +61,7 @@ export default function SignUp() {
   };
 
   if (loading) {
-    return <LoadingPage />;
+    return <LoadingComponent />;
   }
 
   return (

@@ -5,25 +5,21 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import AboutPage from "./components/About Page.jsx";
-import AddVisit from "./components/AddVisit.jsx";
-import AllVisitPage from "./components/AllVisitPage.jsx";
-import Header from "./components/Header.jsx";
 import { LoadingComponent } from "./components/LoadingComponent.jsx";
-import LoadingPage from "./components/LoadingPage.jsx";
-import SearchPage from "./components/SearchPage.jsx";
+import NotFoundPage from "./components/NotFoundPage.jsx";
 import AccountVerificationPage from "./components/Security/AccountVerificationPage.jsx";
 import LoginPage from "./components/Security/LoginPage.jsx";
 import PrivateRoute from "./components/Security/PrivateRoute.jsx";
 import PublicRoute from "./components/Security/PublicRoute.jsx";
 import SignUp from "./components/SignUp.jsx";
 import TelegramIds from "./components/TelegramIds.jsx";
-import UpdateVisitorProfile from "./components/UpdateVisitorProfile.jsx";
-import VisitorProfile from "./components/UserProfile.jsx";
-import VisitsOfVisitor from "./components/VisitsOfVisitor.jsx";
 import { VisitorEntryPassContext } from "./context/VisitorEntryPassContext.jsx";
-import NotFoundPage from "./components/NotFoundPage.jsx";
+import AddVisit from "./pages/AddVisitPage.jsx";
+import SearchPage from "./pages/SearchPage.jsx";
+import UpdateVisitorInfoPage from "./pages/UpdateVisitorInfoPage.jsx";
+import VisitorProfile from "./pages/VisitorProfile.jsx";
 import VisitsPage from "./pages/VisitsPage.jsx";
-
+import NavBarComponent from "./components/NavBarComponent.jsx";
 function App() {
   const { loading, userInfo } = useContext(VisitorEntryPassContext);
   if (loading) {
@@ -31,7 +27,7 @@ function App() {
   }
 
   if (userInfo && !userInfo.isVerified) {
-    <AccountVerificationPage />;
+    return <AccountVerificationPage />;
   }
 
   return (
@@ -39,7 +35,7 @@ function App() {
       <ToastContainer />
       {/* <UserWebSocket /> */}
       <HashRouter>
-        <Header />
+        <NavBarComponent />
         <Routes>
           <Route path="*" element={<NotFoundPage />} />
           {/* Public routes */}
@@ -84,23 +80,15 @@ function App() {
             path="update-visitor-profile/:id"
             element={
               <PrivateRoute>
-                <UpdateVisitorProfile />
+                <UpdateVisitorInfoPage />
               </PrivateRoute>
             }
           />
           <Route
-            path="search/:target/:filterKey/:filterValue"
+            path="search"
             element={
               <PrivateRoute>
                 <SearchPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="loading"
-            element={
-              <PrivateRoute>
-                <LoadingPage />
               </PrivateRoute>
             }
           />
@@ -109,14 +97,6 @@ function App() {
             element={
               <PrivateRoute>
                 <VisitorProfile />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="visits-of-visitor/:query"
-            element={
-              <PrivateRoute>
-                <VisitsOfVisitor />
               </PrivateRoute>
             }
           />
