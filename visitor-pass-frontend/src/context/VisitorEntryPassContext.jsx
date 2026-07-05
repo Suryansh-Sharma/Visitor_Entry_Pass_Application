@@ -40,7 +40,22 @@ const Context = ({ children }) => {
     return <LoadingComponent text={"Please Wait, Data is Loading !!"} />;
   }
   if (error) {
-    return <div>{error.message}</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 p-8">
+        <p className="text-red-500 font-semibold text-sm">
+          Failed to connect to the server.
+        </p>
+        <p className="text-slate-500 text-xs text-center max-w-sm">
+          {error.message}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

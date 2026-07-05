@@ -3,11 +3,7 @@ package com.suryansh.visitorentry.service.interfaces;
 import com.suryansh.visitorentry.dto.*;
 import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.model.AddNewVisitModel;
-import com.suryansh.visitorentry.model.SearchFilter;
-import com.suryansh.visitorentry.model.VisitModel;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface VisitorService {
@@ -23,11 +19,7 @@ public interface VisitorService {
 
     VisitorDto handleUpdateVisitorProfile(VisitorDoc visitorDoc);
 
-    PaginationDto getVisitorOnSpecificDate(LocalDate date, int pageSize, int pageNumber, String sortBy, String sortOrder);
-
     PageResponse<VisitorDto> searchVisitor(VisitorFilterInput filter,PaginationInput pagination);
-
-    PaginationDto handleGetVisitorsInPeriod(String fromDate, String toDate, int pageSize, int pageNumber, String sortBy, String sortOrder);
 
     VisitingRecordPage visitsOfVisitor(String id, int pageNumber, int pageSize, String sortBy, String sortOrder);
 

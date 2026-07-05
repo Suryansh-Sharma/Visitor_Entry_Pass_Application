@@ -75,11 +75,10 @@ public class TelegramServiceImpl implements TelegramService {
                 return;
             }
 
-            String imagePath = FOLDER_PATH + "/" + dto.visitorImage();
-            File imageFile = new File(imagePath);
+            File imageFile = new File(FOLDER_PATH, dto.visitorImage());
             if (!imageFile.exists()) {
-                logger.warn("Image not found at {}. Using default image for visitor: {}", imagePath, dto.visitorName());
-                imageFile = new File(FOLDER_PATH + "/" + DEFAULT_IMAGE);
+                logger.warn("Image not found at {}. Using default image for visitor: {}", imageFile.getAbsolutePath(), dto.visitorName());
+                imageFile = new File(FOLDER_PATH, DEFAULT_IMAGE);
                 if (!imageFile.exists()) {
                     logger.error("Default image also not found. Aborting Telegram notification for visitor: {}", dto.visitorName());
                     return;

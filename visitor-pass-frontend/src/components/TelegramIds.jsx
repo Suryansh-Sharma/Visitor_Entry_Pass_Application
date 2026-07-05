@@ -44,7 +44,7 @@ function TelegramIds() {
     Add_New_TelegramId,
     {
       fetchPolicy: "no-cache",
-      refetchQueries: ["GET_ALL_TELEGRAM_IDS"],
+      refetchQueries: ["getAllTelegramIds"],
     },
   );
 
@@ -52,7 +52,7 @@ function TelegramIds() {
     Delete_TelegramId,
     {
       fetchPolicy: "no-cache",
-      refetchQueries: ["GET_ALL_TELEGRAM_IDS"],
+      refetchQueries: ["getAllTelegramIds"],
     },
   );
 
@@ -90,8 +90,12 @@ function TelegramIds() {
   // --- DELETION CONTROLLER ---
   const handleDeleteTelegramId = async (id, name) => {
     try {
-      await deleteTelegramApi({
-        variables: { id: id },
+      await deleteTelegramApi({ variables: { id } });
+      MySwal.fire({
+        title: "Channel Removed",
+        text: `Notification routing for ${name} has been deleted.`,
+        icon: "success",
+        confirmButtonColor: "#2563eb",
       });
     } catch (error) {
       console.error(error);
@@ -278,7 +282,7 @@ function TelegramIds() {
                 <Select
                   className="h-10 text-xs font-semibold text-slate-700"
                   options={[
-                    { value: "MANAGER", label: "MANAGER" },
+                    { value: "ADMIN", label: "ADMIN" },
                     { value: "TEACHER", label: "TEACHER STAFF" },
                     { value: "RECEPTIONIST", label: "RECEPTION DESK" },
                     { value: "EXTRA", label: "TEMPORARY / AUXILIARY" },

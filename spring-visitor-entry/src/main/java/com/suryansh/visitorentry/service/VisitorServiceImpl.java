@@ -18,10 +18,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
-import org.springframework.data.mongodb.core.aggregation.ConvertOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.graphql.execution.ErrorType;
@@ -31,11 +27,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -231,33 +225,6 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
-    public PaginationDto getVisitorOnSpecificDate(LocalDate date, int pageSize, int pageNumber, String sortBy, String sortOrder) {
-        // Validate the sortBy field
-        if (sortBy != null) {
-            switch (sortBy) {
-                case "id":
-                case "visitorContact":
-                case "visitedOn":
-                case "visitorName":
-                    break;
-                default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName' or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-            }
-        }
-
-        LocalDateTime startDay;
-        LocalDateTime endDay;
-        try {
-            startDay = date.atStartOfDay();
-            endDay = date.plusDays(1).atStartOfDay();
-        } catch (DateTimeParseException e) {
-            throw new SpringVisitorException("Invalid Date format. Use 'yyyy-MM-dd'.", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-        }
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        return getVisitorInRange(startDay, endDay, pageable, sortBy, sortOrder);
-    }
-
-    @Override
     public PageResponse<VisitorDto> searchVisitor(VisitorFilterInput filter, PaginationInput pagination) {
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
@@ -294,61 +261,6 @@ public class VisitorServiceImpl implements VisitorService {
         }
         int totalPages = (int) Math.ceil((double) totalData / pageSize);
         return new PageResponse<>(pageNo, pageSize, totalData, totalPages, data);
-    }
-
-    @Override
-    public PaginationDto handleGetVisitorsInPeriod(String from, String to, int pageSize, int pageNumber, String sortBy, String sortOrder) {
-        LocalDateTime fromDate;
-        LocalDateTime toDate;
-        try {
-            fromDate = LocalDate.parse(from).atStartOfDay();
-            toDate = LocalDate.parse(to).atStartOfDay().plusDays(1);
-        } catch (DateTimeParseException e) {
-            throw new SpringVisitorException("Invalid Date format. Use 'yyyy-MM-dd'.", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-        }
-        if (sortBy != null) {
-            switch (sortBy) {
-                case "id":
-                case "visitorContact":
-                case "visitorName":
-                case "visitedOn":
-                    break;
-                default:
-                    throw new SpringVisitorException("Invalid Sort By field. Include only 'id, visitorContact, visitorName, visitedOn' or null", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-            }
-        }
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
-
-        return getVisitorInRange(fromDate, toDate, pageable, sortBy, sortOrder);
-    }
-
-    private PaginationDto getVisitorInRange(LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable, String sortBy, String sortOrder) {
-        long totalRecords = mongoTemplate.count(Query.query(Criteria.where("visitedOn").gte(fromDate).lt(toDate).and("visitorId").ne(null)), "Visiting_Record");
-        int totalPages = (int) Math.ceil((double) totalRecords / pageable.getPageSize());
-        // Build the aggregation pipeline
-        List<AggregationOperation> operations = new ArrayList<>();
-        operations.add(Aggregation.match(Criteria.where("visitedOn").gte(fromDate).lt(toDate)));
-        // Match for non-null visitor IDs
-        operations.add(Aggregation.match(Criteria.where("visitorId").ne(null)));
-        // Convert 'visitorId' to ObjectId for lookup
-        operations.add(Aggregation.addFields().addField("visitorObjId").withValue(ConvertOperators.ToObjectId.toObjectId("$visitorId")).build());
-        // Lookup operation to join with the 'Visit_Document' collection
-        operations.add(Aggregation.lookup("Visitor_Document", "visitorObjId", "_id", "visitorInfo"));
-        // Unwind the visitorInfo array to flatten the structure
-        operations.add(Aggregation.unwind("visitorInfo", true));
-        // Sort stage
-        if (sortBy != null && sortOrder != null) {
-            Sort.Direction direction = "desc".equalsIgnoreCase(sortOrder) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            operations.add(Aggregation.sort(direction.equals(Sort.Direction.ASC) ? Sort.by(sortBy) : Sort.by(sortBy).descending()));
-        }
-        // Pagination stage
-        operations.add(Aggregation.skip((long) pageable.getPageSize() * pageable.getPageNumber()));
-        operations.add(Aggregation.limit(pageable.getPageSize()));
-        // Create the aggregation
-        Aggregation aggregation = Aggregation.newAggregation(operations);
-        // Execute the aggregation
-        AggregationResults<VisitingRecordWithVisitorInfo> results = mongoTemplate.aggregate(aggregation, "Visiting_Record", VisitingRecordWithVisitorInfo.class);
-        return new PaginationDto(pageable.getPageNumber(), totalPages, results.getMappedResults(), pageable.getPageSize(), (int) totalRecords);
     }
 
     @Override

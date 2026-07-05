@@ -76,6 +76,7 @@ function AddVisitPage() {
             });
 
             setShowVisitorForm(false);
+            setShowImageSec(false);
             toast.success(
               `Profile located: ${getVisitorByContact.visitorName}`,
             );
@@ -175,8 +176,7 @@ function AddVisitPage() {
       const visitInputPayload = {
         visitorContact: values.visitorContact,
         visitorName: values.visitorName,
-        visitorImage: values.visitorImage,
-        hasChildrenInSchool: values.hasChildrenInSchool || false,
+        visitorImage: values.visitorImage || visitorProfile?.visitorImage || "default-visitor.png",
         visitorAddress: {
           city: values.city,
           line1: values.line1,

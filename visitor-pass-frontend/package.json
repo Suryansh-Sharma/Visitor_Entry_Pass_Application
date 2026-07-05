@@ -76,9 +76,12 @@
         {
           "from": "public/extraResources/**",
           "to": "extraResources/",
-          "filter": [
-            "**/*"
-          ]
+          "filter": ["**/*"]
+        },
+        {
+          "from": "public/assets/**",
+          "to": "assets/",
+          "filter": ["**/*"]
         }
       ]
     }

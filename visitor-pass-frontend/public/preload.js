@@ -1,10 +1,13 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require("electron");
 
-// Expose a safe API to the renderer process
-contextBridge.exposeInMainWorld('electron', {
-  // Send data to the main process
+contextBridge.exposeInMainWorld("electron", {
   send: (channel, data) => ipcRenderer.send(channel, data),
+  receive: (channel, func) =>
+    ipcRenderer.on(channel, (_event, data) => func(data)),
+  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 
-  // Receive data from the main process
-  receive: (channel, func) => ipcRenderer.on(channel, (event, data) => func(data)),
+  // Backend lifecycle — used by BackendGate
+  onBackendReady: (cb) => ipcRenderer.once("backend:ready", cb),
+  onBackendStarting: (cb) => ipcRenderer.on("backend:starting", (_e, msg) => cb(msg)),
+  onBackendError: (cb) => ipcRenderer.once("backend:error", (_e, msg) => cb(msg)),
 });

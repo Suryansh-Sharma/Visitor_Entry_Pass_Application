@@ -3,8 +3,6 @@ package com.suryansh.visitorentry.controller;
 import com.suryansh.visitorentry.dto.*;
 import com.suryansh.visitorentry.entity.VisitorDoc;
 import com.suryansh.visitorentry.model.AddNewVisitModel;
-import com.suryansh.visitorentry.model.SearchFilter;
-import com.suryansh.visitorentry.model.VisitModel;
 import com.suryansh.visitorentry.service.interfaces.VisitorService;
 import jakarta.validation.Valid;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -13,7 +11,6 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
