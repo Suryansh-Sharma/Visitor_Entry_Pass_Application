@@ -20,6 +20,7 @@ import UpdateVisitorInfoPage from "./pages/UpdateVisitorInfoPage.jsx";
 import VisitorProfile from "./pages/VisitorProfile.jsx";
 import VisitsPage from "./pages/VisitsPage.jsx";
 import NavBarComponent from "./components/NavBarComponent.jsx";
+import UserWebSocket from "./components/UserWebSocket.jsx";
 function App() {
   const { loading, userInfo } = useContext(VisitorEntryPassContext);
   if (loading) {
@@ -33,7 +34,7 @@ function App() {
   return (
     <div className="MainApp">
       <ToastContainer />
-      {/* <UserWebSocket /> */}
+      {userInfo && <UserWebSocket />}
       <HashRouter>
         <NavBarComponent />
         <Routes>
