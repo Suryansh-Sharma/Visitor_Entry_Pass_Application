@@ -1,7 +1,7 @@
 package com.suryansh.visitorentry.controller;
 
 import com.suryansh.visitorentry.dto.*;
-import com.suryansh.visitorentry.entity.VisitorDoc;
+import com.suryansh.visitorentry.entity.VisitorsEntity;
 import com.suryansh.visitorentry.model.AddNewVisitModel;
 import com.suryansh.visitorentry.service.interfaces.VisitorService;
 import jakarta.validation.Valid;
@@ -46,7 +46,7 @@ public class VisitController {
     }
 
     /**
-     * Get Visitor details by its contact no.
+     * Get VisitorsEntity details by its contact no.
      *
      * @param visitorContact The visitor contact number.
      * @return The visitor details dto {@link VisitorDto}.
@@ -72,7 +72,7 @@ public class VisitController {
 
     @MutationMapping
     @PreAuthorize("isAuthenticated()")
-    public VisitorDto updateVisitorInfo(@Argument("input") VisitorDoc visitorDoc) {
+    public VisitorDto updateVisitorInfo(@Argument("input") VisitorsEntity visitorDoc) {
         return visitorService.handleUpdateVisitorProfile(visitorDoc);
     }
 

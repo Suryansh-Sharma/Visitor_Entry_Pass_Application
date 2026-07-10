@@ -1,6 +1,6 @@
 package com.suryansh.visitorentry.dto;
 
-import com.suryansh.visitorentry.entity.VisitingRecordDoc;
+import com.suryansh.visitorentry.entity.VisitingRecordEntity;
 
 import java.time.LocalDate;
 
@@ -9,7 +9,7 @@ public record VisitFilterInput(
         String visitorContact,
         String visitorName,
         String visitorHost,
-        VisitingRecordDoc.Status status,
+        VisitingRecordEntity.Status status,
         LocalDate fromDate,
         LocalDate toDate,
         String reason

@@ -1,6 +1,6 @@
 package com.suryansh.visitorentry.security;
 
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import com.suryansh.visitorentry.service.interfaces.CacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,7 +19,7 @@ public class UserInfoService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-        UserDocument document = cacheService.FetchUser(userId);
+        UsersEntity document = cacheService.FetchUser(userId);
         return new UserPrincipal(document);
     }
 

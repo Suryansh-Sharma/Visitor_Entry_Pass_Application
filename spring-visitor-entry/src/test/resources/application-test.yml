@@ -1,0 +1,15 @@
+folder:
+  images: /tmp/visitor-entry-test-images/
+
+spring:
+  datasource:
+    url: jdbc:sqlite:/tmp/visitor-entry-test-${random.uuid}.db
+
+telegram:
+  bot:
+    enabled: false
+    username: test-bot
+    token: test-token
+  chatIdSuryansh: test-chat-id
+
+secret_Key: 0123456789012345678901234567890123456789012345678901234567890123

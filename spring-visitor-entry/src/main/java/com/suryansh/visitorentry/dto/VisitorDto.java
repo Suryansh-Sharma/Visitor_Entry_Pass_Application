@@ -23,7 +23,7 @@ public class VisitorDto {
 
     private BanStatusDTO banStatus;
 
-    // Visitor Address
+    // VisitorsEntity Address
     private VisitorAddressDTO visitorAddress;
 
     private boolean hasChildrenInSchool;

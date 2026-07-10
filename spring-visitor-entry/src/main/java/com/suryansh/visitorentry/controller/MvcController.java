@@ -1,6 +1,6 @@
 package com.suryansh.visitorentry.controller;
 
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import com.suryansh.visitorentry.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,18 +11,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Optional;
 
 @Controller
 @RequestMapping("/api/auth/")
 public class MvcController {
-    @Value("${expiration_time}")
-    private long EXPIRATION_MIN ;
     private static final Logger logger = LoggerFactory.getLogger(MvcController.class);
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    @Value("${expiration_time}")
+    private long EXPIRATION_MIN;
 
     public MvcController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -30,9 +28,9 @@ public class MvcController {
     }
 
     @GetMapping("reset-password/for-user/{username}/token/{token}")
-    public String showPasswordResetForm(@PathVariable String username,@PathVariable String token, Model model) {
+    public String showPasswordResetForm(@PathVariable String username, @PathVariable String token, Model model) {
         model.addAttribute("token", token);
-        model.addAttribute("title", "Reset Password For "+username.toUpperCase());
+        model.addAttribute("title", "Reset Password For " + username.toUpperCase());
         return "forget-pass-form";
     }
 
@@ -40,12 +38,17 @@ public class MvcController {
     public String submitResetPassword(@RequestParam("token") String token,
                                       @RequestParam("password") String password,
                                       Model model) {
-        Optional<UserDocument> optional = userRepository.findByForgetPassword_UUID(token);
-        if (optional.isEmpty()) {
-            model.addAttribute("error","No request token found for password reset");
+        if (password == null || password.length() < 8) {
+            model.addAttribute("error",
+                    "Password must be at least 8 characters.");
             return "error-page";
         }
-        UserDocument userDocument = optional.get();
+        Optional<UsersEntity> optional = userRepository.findByForgetPasswordUuid(token);
+        if (optional.isEmpty()) {
+            model.addAttribute("error", "No request token found for password reset");
+            return "error-page";
+        }
+        UsersEntity userDocument = optional.get();
         long LINK_EXPIRE = EXPIRATION_MIN * 60 * 1000;
         Instant generatedOn = userDocument.getForgetPassword().getGeneratedOn();
         if (generatedOn.plusMillis(LINK_EXPIRE).isBefore(Instant.now())) {
@@ -53,15 +56,14 @@ public class MvcController {
             model.addAttribute("error", "Sorry this link is only valid for 30 minutes. Please re-generate.");
             return "error-page";
         }
-        try{
-            userDocument.setRefreshTokens(new ArrayList<>());
+        try {
             userDocument.setPassword(passwordEncoder.encode(password));
             userDocument.setForgetPassword(null);
+            userDocument.setRefreshToken(null);
             userRepository.save(userDocument);
             model.addAttribute("message", "Close the Tab and re-login to application !!");
             return "success-page";
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error while submitting reset password", e);
             model.addAttribute("error", "An unexpected error occurred. Please try again later.");
             return "error-page";

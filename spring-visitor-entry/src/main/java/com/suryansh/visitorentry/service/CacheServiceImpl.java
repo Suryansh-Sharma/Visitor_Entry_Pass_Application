@@ -1,8 +1,8 @@
 package com.suryansh.visitorentry.service;
 
-import com.suryansh.visitorentry.entity.InvalidJwt;
-import com.suryansh.visitorentry.entity.TelegramIdDocument;
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.entity.InvalidJwtEntity;
+import com.suryansh.visitorentry.entity.TelegramIdEntity;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
 import com.suryansh.visitorentry.repository.InvalidJwtRepo;
 import com.suryansh.visitorentry.repository.TelegramIdRepository;
@@ -38,14 +38,14 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
-    @Cacheable(value = "telegramIdDocument", key = "'allTelegramIds'")
-    public List<TelegramIdDocument> getAllTelegramIdFromCache() {
-        return telegramIdRepository.findAll();
+    @Cacheable(value = "telegramIdentity", key = "'allTelegramIds'")
+    public List<TelegramIdEntity> getAllTelegramIdFromCache() {
+        return telegramIdRepository.getAllTelegramIds();
     }
 
     @Override
     @Cacheable(value = "user_doc",key = "#userId")
-    public UserDocument FetchUser(String userId){
+    public UsersEntity FetchUser(String userId){
         return userRepository.findById(userId)
                 .orElseThrow(
                         ()->new SpringVisitorException("Invalid Credentials ", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
@@ -54,14 +54,14 @@ public class CacheServiceImpl implements CacheService {
     @Override
     @Cacheable(value = "blacklistedTokens", key = "#token")
     public boolean isTokenInvalid(String token) {
-        Optional<InvalidJwt> invalidJwt = invalidJwtRepo.findByToken(token);
+        Optional<InvalidJwtEntity> invalidJwt = invalidJwtRepo.findByToken(token);
         return invalidJwt.isPresent();
     }
 
     @CachePut(value = "blacklistedTokens", key = "#token")
     @Override
     public boolean addInvalidJwt(String token,Instant expiredAt) {
-        InvalidJwt invalidJwt = new InvalidJwt();
+        InvalidJwtEntity invalidJwt = new InvalidJwtEntity();
         invalidJwt.setExpiresAt(expiredAt);
         invalidJwt.setToken(token);
         try {
@@ -74,7 +74,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @CacheEvict(value = "blacklistedTokens",allEntries = true)
-//    @Scheduled(fixedRate = 3600000)
+    @Scheduled(fixedRate = 3600000)
     public void removeALLExpiredToken(){
         Instant now =ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).toInstant();
         try {

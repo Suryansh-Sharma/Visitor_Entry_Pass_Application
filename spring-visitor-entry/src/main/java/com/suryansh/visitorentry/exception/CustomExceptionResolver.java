@@ -6,6 +6,7 @@ import graphql.schema.DataFetchingEnvironment;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,12 @@ public class CustomExceptionResolver extends DataFetcherExceptionResolverAdapter
             return GraphqlErrorBuilder.newError()
                     .errorType(ErrorType.BAD_REQUEST)
                     .message(violationMessages.toString())
+                    .path(env.getExecutionStepInfo().getPath())
+                    .build();
+        } else if (ex instanceof DataIntegrityViolationException) {
+            return GraphqlErrorBuilder.newError()
+                    .errorType(ErrorType.BAD_REQUEST)
+                    .message("A record with this value already exists.")
                     .path(env.getExecutionStepInfo().getPath())
                     .build();
         } else {

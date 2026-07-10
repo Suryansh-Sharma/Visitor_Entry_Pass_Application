@@ -3,8 +3,8 @@ package com.suryansh.visitorentry.service;
 import com.suryansh.visitorentry.bot.MyTelegramBot;
 import com.suryansh.visitorentry.dto.TelegramIdDto;
 import com.suryansh.visitorentry.dto.TelegramMessageDto;
-import com.suryansh.visitorentry.entity.TelegramIdDocument;
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.entity.TelegramIdEntity;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
 import com.suryansh.visitorentry.model.TelegramIdModel;
 import com.suryansh.visitorentry.repository.TelegramIdRepository;
@@ -69,7 +69,7 @@ public class TelegramServiceImpl implements TelegramService {
             if ("OTHER".equals(dto.hostName())) {
                 return;
             }
-            TelegramIdDocument telegramId = getTelegramIdByName(dto.hostName());
+            TelegramIdEntity telegramId = getTelegramIdByName(dto.hostName());
             if (telegramId == null || telegramId.getChatId().isEmpty()) {
                 logger.error("Chat ID not found for user {}", dto.hostName());
                 return;
@@ -97,13 +97,13 @@ public class TelegramServiceImpl implements TelegramService {
             sendPhoto.setReplyMarkup(buildKeyboard(dto.visitId()));
             logger.info("Send Photo {}", sendPhoto);
             telegramBot.execute(sendPhoto);
-            logger.info("Visitor request sent to {}", chatId);
+            logger.info("VisitorsEntity request sent to {}", chatId);
         } catch (Exception e) {
             logger.error("Error sending telegram message for visitor {}", dto.visitorName(), e);
         }
     }
 
-    public TelegramIdDocument getTelegramIdByName(String name) {
+    public TelegramIdEntity getTelegramIdByName(String name) {
         return cacheService.getAllTelegramIdFromCache().stream()
                 .filter(doc -> doc.getHostName().equals(name))
                 .findFirst()
@@ -120,11 +120,11 @@ public class TelegramServiceImpl implements TelegramService {
     @Override
     public CompletableFuture<String> updateTelegramId(TelegramIdModel dto, String id) {
         return CompletableFuture.supplyAsync(() -> {
-            Optional<TelegramIdDocument> optional = getTelegramIdByIdAndCheckDuplicate(id, dto);
+            Optional<TelegramIdEntity> optional = getTelegramIdByIdAndCheckDuplicate(id, dto);
             if (optional.isEmpty()) {
                 throw new SpringVisitorException("Unable to find record !!", ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
             }
-            TelegramIdDocument oldDocument = optional.get();
+            TelegramIdEntity oldDocument = optional.get();
             oldDocument.setRole(dto.getRole());
             oldDocument.setChatId(dto.getChatId());
             oldDocument.setHostName(dto.getHostName());
@@ -142,10 +142,10 @@ public class TelegramServiceImpl implements TelegramService {
     }
 
     @Override
-    @CacheEvict(value = "telegramIdDocument", allEntries = true)
+    @CacheEvict(value = "telegramIdentity", allEntries = true)
     public CompletableFuture<String> deleteTelegramId(String id) {
         return CompletableFuture.supplyAsync(() -> {
-            TelegramIdDocument document = cacheService.getAllTelegramIdFromCache().stream()
+            TelegramIdEntity document = cacheService.getAllTelegramIdFromCache().stream()
                     .filter(record -> record.getId().equals(id))
                     .findFirst()
                     .orElseThrow(() -> new SpringVisitorException("Unable to find record !!", ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND));
@@ -166,11 +166,11 @@ public class TelegramServiceImpl implements TelegramService {
 
 
     @Override
-    @CacheEvict(value = "telegramIdDocument", allEntries = true)
+    @CacheEvict(value = "telegramIdentity", allEntries = true)
     public CompletableFuture<String> addNewTelegramId(TelegramIdModel model) {
         return CompletableFuture.supplyAsync(() -> {
             checkTelegramIdExist(model);
-            TelegramIdDocument newRecord = TelegramIdDocument.builder()
+            TelegramIdEntity newRecord = TelegramIdEntity.builder()
                     .hostName(model.getHostName())
                     .role(model.getRole())
                     .chatId(model.getChatId())
@@ -192,7 +192,7 @@ public class TelegramServiceImpl implements TelegramService {
 
     @Override
     public void sendMsgToADMIN(String subMessage) {
-        List<TelegramIdDocument> adminsList = telegramIdRepository.findAllByRole(UserDocument.ROLE.ADMIN);
+        List<TelegramIdEntity> adminsList = telegramIdRepository.findAllByRole(UsersEntity.ROLE.ADMIN);
         // If a list is empty, then send QR Code to the main dev.
         if (adminsList.isEmpty()) {
             try {
@@ -207,7 +207,7 @@ public class TelegramServiceImpl implements TelegramService {
                 logger.error("Failed to send message to DEFAULT admin with chatId: {} ", DEFAULT_CHAT_ID);
             }
         }
-        for (TelegramIdDocument telegramIdDoc : adminsList) {
+        for (TelegramIdEntity telegramIdDoc : adminsList) {
             try {
                 SendMessage sendMessage = new SendMessage();
                 sendMessage.setChatId(telegramIdDoc.getChatId()); // Set the chat ID from the document
@@ -238,9 +238,9 @@ public class TelegramServiceImpl implements TelegramService {
     private String buildMessage(TelegramMessageDto dto) {
         return String.format(
                 """
-                        🚪 *New Visitor Request*
+                        🚪 *New VisitorsEntity Request*
                         
-                        *Visitor:* %s
+                        *VisitorsEntity:* %s
                         *Contact:* %s
                         *Reason:* %s
                         
@@ -266,9 +266,9 @@ public class TelegramServiceImpl implements TelegramService {
         markup.setKeyboard(List.of(row));
         return markup;
     }
-    private Optional<TelegramIdDocument> getTelegramIdByIdAndCheckDuplicate(String id, TelegramIdModel model) {
-        Optional<TelegramIdDocument> res = Optional.empty();
-        for (TelegramIdDocument document : cacheService.getAllTelegramIdFromCache()) {
+    private Optional<TelegramIdEntity> getTelegramIdByIdAndCheckDuplicate(String id, TelegramIdModel model) {
+        Optional<TelegramIdEntity> res = Optional.empty();
+        for (TelegramIdEntity document : cacheService.getAllTelegramIdFromCache()) {
             if (document.getId().equals(id)) {
                 res = Optional.of(document);
             } else if (document.getHostName().equals(model.getHostName()) || document.getChatId().equals(model.getChatId())) {

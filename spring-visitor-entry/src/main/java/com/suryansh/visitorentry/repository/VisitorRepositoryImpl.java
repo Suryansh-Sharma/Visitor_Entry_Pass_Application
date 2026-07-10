@@ -1,61 +1,39 @@
 package com.suryansh.visitorentry.repository;
 
-import com.suryansh.visitorentry.entity.VisitorDoc;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Repository
 public class VisitorRepositoryImpl implements VisitorRepositoryCustom {
 
-    private final MongoTemplate mongoTemplate;
-    public VisitorRepositoryImpl(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
-    }
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public List<String> findIdsByFilter(String visitorName, String visitorContact) {
-        Query query = new Query();
-
-        List<Criteria> criteria = new ArrayList<>();
-
+        StringBuilder jpql = new StringBuilder("select v.id from VisitorsEntity v where 1 = 1");
+        Map<String, String> parameters = new HashMap<>();
         if (StringUtils.hasText(visitorName)) {
-
-            criteria.add(
-                    Criteria.where("visitorName")
-                            .regex(Pattern.quote(visitorName), "i")
-            );
+            jpql.append(" and lower(v.visitorName) like lower(:visitorName) escape '\\'");
+            parameters.put("visitorName", "%" + escapeLike(visitorName) + "%");
         }
-
         if (StringUtils.hasText(visitorContact)) {
-
-            criteria.add(
-                    Criteria.where("visitorContact")
-                            .regex(Pattern.quote(visitorContact))
-            );
+            jpql.append(" and v.visitorContact like :visitorContact escape '\\'");
+            parameters.put("visitorContact", "%" + escapeLike(visitorContact) + "%");
         }
-        if (criteria.size() == 1) {
+        TypedQuery<String> query = entityManager.createQuery(jpql.toString(), String.class);
+        parameters.forEach(query::setParameter);
+        return query.getResultList();
+    }
 
-            query.addCriteria(criteria.getFirst());
-
-        } else if (!criteria.isEmpty()) {
-
-            query.addCriteria(
-                    new Criteria().andOperator(
-                            criteria.toArray(new Criteria[0])
-                    )
-            );
-        }
-        query.fields().include("_id");
-
-        return mongoTemplate.find(query, VisitorDoc.class)
-                .stream()
-                .map(VisitorDoc::getId)
-                .toList();
+    private String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

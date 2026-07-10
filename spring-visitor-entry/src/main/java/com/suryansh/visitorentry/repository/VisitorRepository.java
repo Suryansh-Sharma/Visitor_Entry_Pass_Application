@@ -1,16 +1,17 @@
 package com.suryansh.visitorentry.repository;
 
-import com.suryansh.visitorentry.entity.VisitorDoc;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import com.suryansh.visitorentry.entity.VisitorsEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 
 /**
  * This is a repository interface that communicated with a database layer
- * This is used for VisitorDoc.
+ * This is used for VisitorEntity.
  * @author suryansh
  */
-public interface VisitorRepository extends MongoRepository<VisitorDoc,String>, VisitorRepositoryCustom {
+public interface VisitorRepository extends JpaRepository<VisitorsEntity,String>, JpaSpecificationExecutor<VisitorsEntity>, VisitorRepositoryCustom {
 
-    Optional<VisitorDoc> findByVisitorContact(String visitorContact);
+    Optional<VisitorsEntity> findByVisitorContact(String visitorContact);
 }

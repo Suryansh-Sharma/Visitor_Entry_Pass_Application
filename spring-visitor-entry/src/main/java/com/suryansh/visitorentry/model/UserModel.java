@@ -1,6 +1,5 @@
 package com.suryansh.visitorentry.model;
 
-import com.suryansh.visitorentry.entity.UserDocument;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;

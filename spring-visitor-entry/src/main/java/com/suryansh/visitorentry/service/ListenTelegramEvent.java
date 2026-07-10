@@ -1,10 +1,10 @@
 package com.suryansh.visitorentry.service;
 
-import com.suryansh.visitorentry.entity.VisitingRecordDoc;
-import com.suryansh.visitorentry.entity.VisitorDoc;
+import com.suryansh.visitorentry.entity.VisitingRecordEntity;
+import com.suryansh.visitorentry.entity.VisitorsEntity;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
-import com.suryansh.visitorentry.repository.VisitorRepository;
 import com.suryansh.visitorentry.repository.VisitingRecordRepo;
+import com.suryansh.visitorentry.repository.VisitorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.graphql.execution.ErrorType;
@@ -24,39 +24,39 @@ public class ListenTelegramEvent {
 
     public String manageVisitorReq(String visitId, String visitStatus) {
 
-        VisitingRecordDoc visitingRecordDoc = visitingRecordRepo.findById(visitId)
+        VisitingRecordEntity visitingRecordEntity = visitingRecordRepo.findById(visitId)
                 .orElseThrow(() -> new SpringVisitorException(
                         "Unable to find Visiting Record Of Id " + visitId,
                         ErrorType.NOT_FOUND,
                         HttpStatus.NOT_FOUND));
-        VisitorDoc visitorDoc = visitRepository.findById(visitingRecordDoc.getVisitorId())
-                .orElseThrow(() -> new SpringVisitorException("Unable to find visitor of id "+visitingRecordDoc.getVisitorId(),
+        VisitorsEntity visitorEntity = visitRepository.findById(visitingRecordEntity.getVisitorId())
+                .orElseThrow(() -> new SpringVisitorException("Unable to find visitor of id "+visitingRecordEntity.getVisitorId(),
                         ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND));
-        String visitorName = visitorDoc.getVisitorName();
+        String visitorName = visitorEntity.getVisitorName();
         // 🚫 Already processed
-        if (visitingRecordDoc.getStatus() != VisitingRecordDoc.Status.PENDING) {
+        if (visitingRecordEntity.getStatus() != VisitingRecordEntity.Status.PENDING) {
             logger.warn("Visit {} already processed with status {}",
-                    visitId, visitingRecordDoc.getStatus());
+                    visitId, visitingRecordEntity.getStatus());
 
-            return "⚠️ Visitor " + visitorName + " was already "
-                    + visitingRecordDoc.getStatus().toString().toLowerCase();
+            return "⚠️ VisitorsEntity " + visitorName + " was already "
+                    + visitingRecordEntity.getStatus().toString().toLowerCase();
         }
         // ✅ Process status
         if ("ACCEPT".equals(visitStatus)) {
-            visitingRecordDoc.setStatus(VisitingRecordDoc.Status.ACCEPTED);
+            visitingRecordEntity.setStatus(VisitingRecordEntity.Status.ACCEPTED);
         } else if ("REJECT".equals(visitStatus)) {
-            visitingRecordDoc.setStatus(VisitingRecordDoc.Status.REJECTED);
+            visitingRecordEntity.setStatus(VisitingRecordEntity.Status.REJECTED);
         } else {
             logger.warn("Invalid visit status {} for visit {}", visitStatus, visitId);
             return "❌ Invalid action for visitor " + visitorName;
         }
         try {
-            visitingRecordRepo.save(visitingRecordDoc);
+            visitingRecordRepo.save(visitingRecordEntity);
             // 🎯 Return proper message
-            if (visitingRecordDoc.getStatus() == VisitingRecordDoc.Status.ACCEPTED) {
-                return "✅ Visitor " + visitorName + " has been accepted.";
+            if (visitingRecordEntity.getStatus() == VisitingRecordEntity.Status.ACCEPTED) {
+                return "✅ VisitorsEntity " + visitorName + " has been accepted.";
             } else {
-                return "❌ Visitor " + visitorName + " has been rejected.";
+                return "❌ VisitorsEntity " + visitorName + " has been rejected.";
             }
         } catch (Exception e) {
             logger.error("Unable to update status for visiting record {}", visitId, e);

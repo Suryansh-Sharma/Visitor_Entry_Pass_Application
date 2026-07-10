@@ -1,6 +1,6 @@
 package com.suryansh.visitorentry.dto;
 
-import com.suryansh.visitorentry.entity.VisitingRecordDoc;
+import com.suryansh.visitorentry.entity.VisitingRecordEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +15,7 @@ public class VisitingRecordWithVisitorInfo {
     private Instant visitedOn;
     private String reason;
     private String visitorHost;
-    private VisitingRecordDoc.Status status;
+    private VisitingRecordEntity.Status status;
     private String note;
     private VisitorInfo visitorInfo;
 

@@ -1,19 +1,37 @@
 folder:
   images: ${USER_IMAGES_PATH:../User_Images/}
-  defaultImage: "default-visitor.png"
+  defaultImage: default-visitor.png
 
 spring:
-  lifecycle:
-    timeout-per-shutdown-phase: 30s
   config:
     import: optional:classpath:secret-application.yml
+
+  datasource:
+    url: jdbc:sqlite:${SQLITE_DB_PATH:visitor-entry.db}
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      connection-init-sql: PRAGMA foreign_keys=ON
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
   graphql:
     path: /graphql
+
     websocket:
       path: /graphql
+
     graphiql:
       enabled: true
       path: /graphiql
+
     cors:
       allow-credentials: true
       allowed-origins:
@@ -26,19 +44,24 @@ spring:
         - OPTIONS
       allowed-headers:
         - "*"
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/visitor-entry-pass
-      database: VisitorEntryPass
+
   servlet:
     multipart:
       enabled: true
       file-size-threshold: 2KB
       max-file-size: 10MB
       max-request-size: 10MB
-logging:
-  level:
-    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
 server:
   shutdown: graceful
+
+logging:
+  level:
+    org.flywaydb: INFO
+    org.hibernate.SQL: WARN
+    org.springframework: INFO
+
 expiration_time: 30

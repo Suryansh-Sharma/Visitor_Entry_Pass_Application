@@ -1,7 +1,6 @@
 package com.suryansh.visitorentry.security;
 
-import com.suryansh.visitorentry.entity.UserDocument;
-import lombok.ToString;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,7 +16,7 @@ public class UserPrincipal implements UserDetails {
     Boolean isActive=false;
     Boolean isVerified=false;
 
-    public UserPrincipal(UserDocument document){
+    public UserPrincipal(UsersEntity document){
         id = document.getId();
         password = document.getPassword();
         authorities.add(new SimpleGrantedAuthority("ROLE_"+document.getRole().name()));

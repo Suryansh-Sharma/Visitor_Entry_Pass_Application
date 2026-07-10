@@ -1,7 +1,7 @@
 package com.suryansh.visitorentry.service.interfaces;
 
 import com.suryansh.visitorentry.dto.*;
-import com.suryansh.visitorentry.entity.VisitorDoc;
+import com.suryansh.visitorentry.entity.VisitorsEntity;
 import com.suryansh.visitorentry.model.AddNewVisitModel;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,9 +17,9 @@ public interface VisitorService {
 
     VisitorDto getVisitorById(String visitorId);
 
-    VisitorDto handleUpdateVisitorProfile(VisitorDoc visitorDoc);
+    VisitorDto handleUpdateVisitorProfile(VisitorsEntity visitorEntity);
 
-    PageResponse<VisitorDto> searchVisitor(VisitorFilterInput filter,PaginationInput pagination);
+    PageResponse<VisitorDto> searchVisitor(VisitorFilterInput filter, PaginationInput pagination);
 
     VisitingRecordPage visitsOfVisitor(String id, int pageNumber, int pageSize, String sortBy, String sortOrder);
 

@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * This Service class is used for performing file related operation.
@@ -25,6 +26,15 @@ public class FileServiceImpl implements FileService {
     private String FOLDER_PATH;
     private final static Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
 
+    // MultipartFile.transferTo(File) resolves a *relative* destination against the
+    // servlet container's own temp/work directory, not the app's working directory —
+    // so folder.images's relative default (../User_Images/) must be made absolute
+    // before use, or uploads silently land inside Tomcat's temp dir instead.
+    private File resolve(String fileName) {
+        Path absoluteFolder = Path.of(FOLDER_PATH).toAbsolutePath().normalize();
+        return absoluteFolder.resolve(fileName).toFile();
+    }
+
     public String addNewImage(MultipartFile file, String imageName) {
         if (file.isEmpty()){
             throw new SpringVisitorException("Image is empty", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST);
@@ -32,8 +42,7 @@ public class FileServiceImpl implements FileService {
         if (imageName.isEmpty()){
             throw new SpringVisitorException("Image name is empty", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST);
         }
-        String newFilePath = FOLDER_PATH + "/" + imageName;
-        File newFile = new File(newFilePath);
+        File newFile = resolve(imageName);
         try {
             file.transferTo(newFile);
             logger.info("New Image {} is added successfully", imageName);
@@ -45,8 +54,7 @@ public class FileServiceImpl implements FileService {
     }
 
     public byte[] getImage(String name) throws IOException {
-        String fullPath = FOLDER_PATH + "/" + name;
-        File file = new File(fullPath);
+        File file = resolve(name);
         if (!file.exists()) throw new SpringVisitorException("Unable to find image of name " + name,ErrorType.NOT_FOUND,HttpStatus.NOT_FOUND);
         return Files.readAllBytes(file.toPath());
     }
@@ -59,8 +67,7 @@ public class FileServiceImpl implements FileService {
         if (name.isEmpty()) {
             throw new SpringVisitorException("Image name is empty", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST);
         }
-        String fullPath = FOLDER_PATH + "/" + name;
-        File oldFile = new File(fullPath);
+        File oldFile = resolve(name);
 
         try {
             if (oldFile.exists()) {
@@ -70,7 +77,7 @@ public class FileServiceImpl implements FileService {
                             ErrorType.INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
-            File newFile = new File(fullPath);
+            File newFile = resolve(name);
             file.transferTo(newFile);
 
         } catch (IOException e) {
@@ -81,9 +88,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public boolean checkFileExist(String visitorImage) {
-        String fullPath = FOLDER_PATH + "/" + visitorImage;
-        File file = new File(fullPath);
-        return file.exists();
+        return resolve(visitorImage).exists();
     }
 
 }

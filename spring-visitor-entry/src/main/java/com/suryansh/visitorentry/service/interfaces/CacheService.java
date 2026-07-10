@@ -1,15 +1,15 @@
 package com.suryansh.visitorentry.service.interfaces;
 
-import com.suryansh.visitorentry.entity.TelegramIdDocument;
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.entity.TelegramIdEntity;
+import com.suryansh.visitorentry.entity.UsersEntity;
 
 import java.time.Instant;
 import java.util.List;
 
 public interface CacheService {
-    List<TelegramIdDocument> getAllTelegramIdFromCache();
+    List<TelegramIdEntity> getAllTelegramIdFromCache();
 
-    UserDocument FetchUser(String userId);
+    UsersEntity FetchUser(String userId);
 
     boolean isTokenInvalid(String token);
 

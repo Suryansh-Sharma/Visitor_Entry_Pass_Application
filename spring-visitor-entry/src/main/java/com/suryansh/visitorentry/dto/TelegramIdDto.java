@@ -1,7 +1,7 @@
 package com.suryansh.visitorentry.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +17,7 @@ public class TelegramIdDto {
     private String id;
     private String hostName;
     private String chatId;
-    private UserDocument.ROLE role;
+    private UsersEntity.ROLE role;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime dateOfJoin;
 }

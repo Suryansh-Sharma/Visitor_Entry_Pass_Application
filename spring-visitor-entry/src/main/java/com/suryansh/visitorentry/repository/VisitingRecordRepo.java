@@ -1,10 +1,11 @@
 package com.suryansh.visitorentry.repository;
 
-import com.suryansh.visitorentry.entity.VisitingRecordDoc;
+import com.suryansh.visitorentry.entity.VisitingRecordEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface VisitingRecordRepo extends MongoRepository<VisitingRecordDoc, String> {
-    Page<VisitingRecordDoc> findAllByVisitorId(String id, Pageable pageable);
+public interface VisitingRecordRepo extends JpaRepository<VisitingRecordEntity, String>, JpaSpecificationExecutor<VisitingRecordEntity> {
+    Page<VisitingRecordEntity> findAllByVisitorId(String id, Pageable pageable);
 }

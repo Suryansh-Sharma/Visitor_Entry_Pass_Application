@@ -3,6 +3,7 @@ package com.suryansh.visitorentry;
 import com.suryansh.visitorentry.bot.MyTelegramBot;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -13,7 +14,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 /**
  * TechStack:- MongoDB,GraphQl,
  * <p>
- * The application provides backend functionality for Visitor-Entry-Management, including
+ * The application provides backend functionality for VisitorsEntity-Entry-Management, including
  * adding new visit, get today all visit, searching for a visitor, capturing visitor image and info, etc.
  * <p>
  *
@@ -39,6 +40,7 @@ public class SpringVisitorEntryApplication {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "telegram.bot.enabled", havingValue = "true", matchIfMissing = true)
     public TelegramBotsApi telegramBotsApi(MyTelegramBot bot) throws Exception {
         TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
         api.registerBot(bot);
@@ -46,5 +48,4 @@ public class SpringVisitorEntryApplication {
     }
 
 }
-
 
