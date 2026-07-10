@@ -254,3 +254,81 @@ export const SEARCH_VISITS_OF_VISITOR = gql`
     }
   }
 `;
+
+export const GET_ORGANIZATION = gql`
+  query getOrganization {
+    getOrganization {
+      id
+      organizationName
+      organizationType
+      organizationAddress
+      organizationPhone
+      organizationEmail
+      logoPath
+    }
+  }
+`;
+
+export const UPDATE_ORGANIZATION = gql`
+  mutation UpdateOrganization($input: OrganizationInput!) {
+    updateOrganization(input: $input) {
+      id
+      organizationName
+      organizationType
+      organizationAddress
+      organizationPhone
+      organizationEmail
+      logoPath
+    }
+  }
+`;
+
+export const GET_ALL_USERS = gql`
+  query getAllUsers {
+    getAllUsers {
+      id
+      username
+      contact
+      role
+      isActive
+      isVerified
+    }
+  }
+`;
+
+export const CREATE_USER = gql`
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      id
+      username
+      contact
+      role
+      isActive
+      isVerified
+    }
+  }
+`;
+
+export const UPDATE_USER_ROLE = gql`
+  mutation UpdateUserRole($userId: String!, $role: Role!) {
+    updateUserRole(userId: $userId, role: $role) {
+      id
+      role
+    }
+  }
+`;
+
+export const SET_USER_ACTIVE = gql`
+  mutation SetUserActive($userId: String!, $isActive: Boolean!) {
+    setUserActive(userId: $userId, isActive: $isActive) {
+      id
+      isActive
+    }
+  }
+`;
+
+export const DELETE_USER = gql`
+  mutation DeleteUser($userId: String!) {
+    deleteUser(userId: $userId)
+  }
+`;

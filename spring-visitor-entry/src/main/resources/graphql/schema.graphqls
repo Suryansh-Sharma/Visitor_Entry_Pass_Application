@@ -13,6 +13,10 @@ type Query {
 
     getAllTelegramIds:[TelegramIdDto]
 
+    getOrganization:Organization
+
+    getAllUsers:[UserSummary]
+
 }
 type Mutation {
     addNewTelegramId(input:TelegramIdModel!):String
@@ -42,6 +46,16 @@ type Mutation {
     handleLogout(authorization: String!,refreshToken:String!):String
 
     forgetPassword(username:String!):String
+
+    updateOrganization(input:OrganizationInput!):Organization!
+
+    createUser(input:CreateUserInput!):UserSummary!
+
+    updateUserRole(userId:String!,role:Role!):UserSummary!
+
+    setUserActive(userId:String!,isActive:Boolean!):UserSummary!
+
+    deleteUser(userId:String!):String
 }
 
 # Input Model
@@ -97,6 +111,22 @@ input TelegramIdModel {
     chatId:String
     role:Role
     hostName:String
+}
+
+input OrganizationInput {
+    organizationName:String!
+    organizationType:String
+    organizationAddress:String
+    organizationPhone:String
+    organizationEmail:String
+    logoPath:String
+}
+
+input CreateUserInput {
+    username:String!
+    password:String!
+    contact:String
+    role:Role!
 }
 
 # New Search Api for excluding old multiple api.
@@ -250,4 +280,23 @@ type TelegramIdDto {
 type NotifyVisitStatus {
     visitId: String
     visitStatus: String
+}
+
+type Organization {
+    id:Int
+    organizationName:String
+    organizationType:String
+    organizationAddress:String
+    organizationPhone:String
+    organizationEmail:String
+    logoPath:String
+}
+
+type UserSummary {
+    id:String!
+    username:String!
+    contact:String
+    role:Role!
+    isActive:Boolean!
+    isVerified:Boolean!
 }

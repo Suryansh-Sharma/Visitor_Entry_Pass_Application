@@ -1,8 +1,7 @@
 package com.suryansh.visitorentry.repository;
 
-import com.suryansh.visitorentry.entity.UserDocument;
-import org.apache.catalina.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import com.suryansh.visitorentry.entity.UsersEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -13,10 +12,12 @@ import java.util.Optional;
  * @author suryansh
  */
 @Repository
-public interface UserRepository extends MongoRepository<UserDocument,String> {
-    Optional<UserDocument> findByUsername(String username);
+public interface UserRepository extends JpaRepository<UsersEntity,String> {
+    Optional<UsersEntity> findByUsername(String username);
 
-    Optional<UserDocument> findByRefreshTokensToken(String refreshToken);
+    Optional<UsersEntity> findByRefreshTokenToken(String refreshToken);
 
-    Optional<UserDocument> findByForgetPassword_UUID(String forgetPasswordUUID);
+    Optional<UsersEntity> findByForgetPasswordUuid(String uuid);
+
+    long countByRole(UsersEntity.ROLE role);
 }

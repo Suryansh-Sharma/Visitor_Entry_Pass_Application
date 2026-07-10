@@ -11,8 +11,11 @@ import AccountVerificationPage from "./components/Security/AccountVerificationPa
 import LoginPage from "./components/Security/LoginPage.jsx";
 import PrivateRoute from "./components/Security/PrivateRoute.jsx";
 import PublicRoute from "./components/Security/PublicRoute.jsx";
+import OrgSetupPage from "./components/OrgSetupPage.jsx";
+import OrganizationPage from "./components/OrganizationPage.jsx";
 import SignUp from "./components/SignUp.jsx";
 import TelegramIds from "./components/TelegramIds.jsx";
+import { CameraProvider } from "./context/CameraContext.jsx";
 import { VisitorEntryPassContext } from "./context/VisitorEntryPassContext.jsx";
 import AddVisit from "./pages/AddVisitPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
@@ -22,7 +25,9 @@ import VisitsPage from "./pages/VisitsPage.jsx";
 import NavBarComponent from "./components/NavBarComponent.jsx";
 import UserWebSocket from "./components/UserWebSocket.jsx";
 function App() {
-  const { loading, userInfo } = useContext(VisitorEntryPassContext);
+  const { loading, userInfo, organization } = useContext(
+    VisitorEntryPassContext,
+  );
   if (loading) {
     return <LoadingComponent text={"Please Wait App is Loading"} />;
   }
@@ -31,13 +36,15 @@ function App() {
     return <AccountVerificationPage />;
   }
 
-  return (
-    <div className="MainApp">
-      <ToastContainer />
-      {userInfo && <UserWebSocket />}
-      <HashRouter>
-        <NavBarComponent />
-        <Routes>
+  // First-run: an admin must complete organization setup before using the app.
+  if (userInfo && userInfo.role === "ADMIN" && !organization) {
+    return <OrgSetupPage />;
+  }
+
+  const routes = (
+    <HashRouter>
+      <NavBarComponent />
+      <Routes>
           <Route path="*" element={<NotFoundPage />} />
           {/* Public routes */}
           <Route path="/" element={<AboutPage />} />
@@ -109,8 +116,23 @@ function App() {
               </PrivateRoute>
             }
           />
-        </Routes>
-      </HashRouter>
+          <Route
+            path="organization"
+            element={
+              <PrivateRoute>
+                <OrganizationPage />
+              </PrivateRoute>
+            }
+          />
+      </Routes>
+    </HashRouter>
+  );
+
+  return (
+    <div className="MainApp">
+      <ToastContainer />
+      {userInfo && <UserWebSocket />}
+      {userInfo ? <CameraProvider>{routes}</CameraProvider> : routes}
     </div>
   );
 }

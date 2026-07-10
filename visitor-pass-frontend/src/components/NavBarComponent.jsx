@@ -1,5 +1,6 @@
 import {
   ArrowLeftOutlined,
+  BankOutlined,
   HomeOutlined,
   LogoutOutlined,
   ReloadOutlined,
@@ -174,6 +175,25 @@ const NavBarComponent = () => {
               className="h-8 w-8 p-0 rounded-lg flex items-center justify-center hover:bg-slate-100"
             />
           </Tooltip>
+
+          {userInfo.role === "ADMIN" && (
+            <Tooltip title="Organization Settings" placement="bottom">
+              <Button
+                type="text"
+                icon={
+                  <BankOutlined
+                    className={
+                      location.pathname === "/organization"
+                        ? "text-blue-600"
+                        : "text-slate-400 hover:text-slate-600"
+                    }
+                  />
+                }
+                onClick={() => navigate("/organization")}
+                className={`h-8 w-8 p-0 rounded-lg flex items-center justify-center ${location.pathname === "/organization" ? "bg-blue-50/80" : "hover:bg-slate-100"}`}
+              />
+            </Tooltip>
+          )}
 
           <Tooltip title="System Architecture Info" placement="bottom">
             <Button

@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { createContext, useState } from "react";
 import { LoadingComponent } from "../components/LoadingComponent";
-import { GET_ALL_TELEGRAM_IDS } from "../graphQl/queries";
+import { GET_ALL_TELEGRAM_IDS, GET_ORGANIZATION } from "../graphQl/queries";
 
 export const VisitorEntryPassContext = createContext();
 
@@ -24,7 +24,17 @@ const Context = ({ children }) => {
     skip: !token,
   });
 
+  const {
+    data: orgData,
+    loading: orgLoading,
+    refetch: refetchOrganization,
+  } = useQuery(GET_ORGANIZATION, {
+    fetchPolicy: "network-only",
+    skip: !token,
+  });
+
   const allTelegramIds = data?.getAllTelegramIds ?? [];
+  const organization = orgData?.getOrganization ?? null;
 
   const logout = () => {
     localStorage.removeItem("userInfo");
@@ -36,7 +46,7 @@ const Context = ({ children }) => {
     setUserInfo(user);
   };
 
-  if (loading) {
+  if (loading || orgLoading) {
     return <LoadingComponent text={"Please Wait, Data is Loading !!"} />;
   }
   if (error) {
@@ -64,6 +74,8 @@ const Context = ({ children }) => {
         userInfo,
         setUserInfo,
         allTelegramIds,
+        organization,
+        refetchOrganization,
         login,
         logout,
       }}

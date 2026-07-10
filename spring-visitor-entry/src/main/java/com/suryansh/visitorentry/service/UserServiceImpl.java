@@ -1,8 +1,10 @@
 package com.suryansh.visitorentry.service;
 
 import com.suryansh.visitorentry.dto.UserDto;
-import com.suryansh.visitorentry.entity.UserDocument;
+import com.suryansh.visitorentry.dto.UserSummaryDto;
+import com.suryansh.visitorentry.entity.UsersEntity;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
+import com.suryansh.visitorentry.model.CreateUserModel;
 import com.suryansh.visitorentry.model.UserModel;
 import com.suryansh.visitorentry.repository.UserRepository;
 import com.suryansh.visitorentry.security.JwtService;
@@ -33,9 +35,9 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class UserServiceImpl implements UserService {
     private static final long OTP_EXPIRATION_MINUTES = 30;  // 30 minutes for expiration
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     private final UserRepository userRepository;
     private final TelegramService telegramService;
-    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final CacheService cacheService;
@@ -52,44 +54,65 @@ public class UserServiceImpl implements UserService {
         this.cacheService = cacheService;
     }
 
+    private static String getString(String username, UsersEntity userDoc) {
+        String url = String.format("http://localhost:8080/api/auth/reset-password/for-user/%s/token/%s", username, userDoc.getForgetPassword().getUuid());
+        logger.info("URL is: {}", url);
+        // Prepare the message to be sent to admins
+        return String.format(
+                """
+                        📢 <b>Password Reset Request</b>
+                        
+                        👤 <b>User:</b> %s
+                        🔗 <b>Reset Link:- </b> <a href="%s">%s</a>
+                        
+                        ⚠️ <i>Note:</i> This link is valid for <b>30 minutes</b>. Please ensure the user opens it in their browser.
+                        
+                        Thank you, 🙏
+                        — <i>Suryansh Sharma</i>
+                        """,
+                userDoc.getUsername(), url, url
+        );
+
+
+    }
+
     @Override
     @Async
     public CompletableFuture<UserDto> addNewUser(UserModel model) {
         return CompletableFuture.supplyAsync(() -> {
             // Check if the user already exists
-            Optional<UserDocument> checkDocument = userRepository.findByUsername(model.getUsername());
+            Optional<UsersEntity> checkDocument = userRepository.findByUsername(model.getUsername());
             if (checkDocument.isPresent()) {
                 throw new SpringVisitorException("Username " + model.getUsername() + " is already present !!",
                         ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
-            UserDocument.Verification verification = new UserDocument.Verification();
+            UsersEntity.Verification verification = new UsersEntity.Verification();
             verification.setGeneratedOn(Instant.now());
-            verification.setOTP(generateSixDigitNumber());
+            verification.setOtp(generateSixDigitNumber());
             // Create a new user document
-            UserDocument userDocument = UserDocument.builder()
-                    .contact(model.getContact())
-                    .username(model.getUsername())
-                    .password(passwordEncoder.encode(model.getPassword())) // Consider hashing passwords before saving
-                    .role(UserDocument.ROLE.valueOf(model.getRole().toUpperCase()))
-                    .isActive(false)
-                    .isVerified(false)
-                    .verification(verification) // Generate OTP
-                    .refreshTokens(new ArrayList<>())
-                    .build();
             ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-            UserDocument.RefreshToken refreshToken = new UserDocument.RefreshToken(
+            UsersEntity.RefreshToken refreshToken = new UsersEntity.RefreshToken(
                     UUID.randomUUID().toString(),
                     nowInIndia.toInstant(),
                     nowInIndia.plusDays(1).toInstant()
             );
-            userDocument.getRefreshTokens().add(refreshToken);
+            UsersEntity userEntity = UsersEntity.builder()
+                    .contact(model.getContact())
+                    .username(model.getUsername())
+                    .password(passwordEncoder.encode(model.getPassword()))
+                    .role(UsersEntity.ROLE.valueOf(model.getRole().toUpperCase()))
+                    .isActive(false)
+                    .isVerified(false)
+                    .verification(verification)
+                    .refreshToken(refreshToken)
+                    .build();
             try {
                 // Save user to the repository
-                UserDocument user = userRepository.save(userDocument);
+                UsersEntity user = userRepository.save(userEntity);
 
                 // Prepare the message to be sent to admins
                 String message = String.format("%s created a new account! Here is the OTP: %s",
-                        model.getUsername(), userDocument.getVerification().getOTP());
+                        model.getUsername(), userEntity.getVerification().getOtp());
 
                 // Send OTP notification to admins via Telegram
                 telegramService.sendMsgToADMIN(message);
@@ -126,11 +149,10 @@ public class UserServiceImpl implements UserService {
         });
     }
 
-
     @Override
     public UserDto loginUser(String username, String password) {
         // Step 1: Retrieve user by username
-        UserDocument checkDocument = userRepository.findByUsername(username)
+        UsersEntity checkDocument = userRepository.findByUsername(username)
                 .orElseThrow(() -> new SpringVisitorException(
                         "Invalid Username", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
 
@@ -147,19 +169,12 @@ public class UserServiceImpl implements UserService {
 
         // Generate new refresh token
         ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-        UserDocument.RefreshToken refreshToken = new UserDocument.RefreshToken(
+        UsersEntity.RefreshToken refreshToken = new UsersEntity.RefreshToken(
                 UUID.randomUUID().toString(),
                 nowInIndia.toInstant(),
                 nowInIndia.plusDays(30).toInstant()
         );
-        if (checkDocument.getRefreshTokens() != null) {
-            // Remove Old ExpiredToken
-            checkDocument.getRefreshTokens()
-                    .removeIf(r -> nowInIndia.toInstant().isAfter(r.getExpiresOn()));
-        } else {
-            checkDocument.setRefreshTokens(new ArrayList<>());
-        }
-        checkDocument.getRefreshTokens().add(refreshToken);
+        checkDocument.setRefreshToken(refreshToken);
         try {
             userRepository.save(checkDocument);
             return new UserDto(
@@ -186,27 +201,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String verifyUserAccount(int otp, String userId) {
-        UserDocument userDoc = userRepository.findById(userId)
+        UsersEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new SpringVisitorException("Invalid User Id ", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
-        if (userDoc.isVerified()) {
+        if (userEntity.isVerified()) {
             return "User is already verified";
         }
-        if (userDoc.getVerification().getOTP() != otp) {
+        if (userEntity.getVerification().getOtp() != otp) {
             throw new SpringVisitorException("Invalid OTP ", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
         }
 
-        if (isOtpExpired(userDoc.getVerification().getGeneratedOn())) {
+        if (isOtpExpired(userEntity.getVerification().getGeneratedOn())) {
             throw new SpringVisitorException("Sorry this otp is expired !!", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
         }
-        userDoc.setVerified(true);
-        userDoc.setActive(true);
-        userDoc.setVerification(null);
+        userEntity.setVerified(true);
+        userEntity.setActive(true);
+        userEntity.setVerification(null);
         try {
-            userRepository.save(userDoc);
+            userRepository.save(userEntity);
             return "Otp verified successfully !!";
         } catch (Exception e) {
             // Log the error
-            logger.error("Unable to verify user: {} - {}", userDoc.getUsername(), e.getMessage());
+            logger.error("Unable to verify user: {} - {}", userEntity.getUsername(), e.getMessage());
             // Throw a custom exception for the failure
             throw new SpringVisitorException("Sorry, unable to verify otp for user",
                     ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
@@ -217,29 +232,29 @@ public class UserServiceImpl implements UserService {
     @Async
     public CompletableFuture<String> regeneratedOtpForUser(String userId) {
         return CompletableFuture.supplyAsync(() -> {
-            UserDocument userDoc = userRepository.findById(userId)
+            UsersEntity usersEntity = userRepository.findById(userId)
                     .orElseThrow(() -> new SpringVisitorException("Invalid Credentials ", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
-            if (userDoc.isVerified()) {
+            if (usersEntity.isVerified()) {
                 throw new SpringVisitorException("User already verified", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
             }
-            if (userDoc.getVerification() != null && !isOtpExpired(userDoc.getVerification().getGeneratedOn())) {
+            if (usersEntity.getVerification() != null && !isOtpExpired(usersEntity.getVerification().getGeneratedOn())) {
                 throw new SpringVisitorException("Otp is already sent to User", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
 
             }
-            UserDocument.Verification verification = new UserDocument.Verification();
+            UsersEntity.Verification verification = new UsersEntity.Verification();
             verification.setGeneratedOn(Instant.now());
-            verification.setOTP(generateSixDigitNumber());
-            userDoc.setVerification(verification);
+            verification.setOtp(generateSixDigitNumber());
+            usersEntity.setVerification(verification);
             try {
-                userRepository.save(userDoc);
+                userRepository.save(usersEntity);
                 // Prepare the message to be sent to admins
                 String message = String.format("%s regenerated OTP! Here is the OTP: %s",
-                        userDoc.getUsername(), userDoc.getVerification().getOTP());
+                        usersEntity.getUsername(), usersEntity.getVerification().getOtp());
                 telegramService.sendMsgToADMIN(message);
                 return "Otp resented successfully !!";
             } catch (Exception e) {
                 // Log the error
-                logger.error("Unable to send otp for user: {} - {}", userDoc.getUsername(), e.getMessage());
+                logger.error("Unable to send otp for user: {} - {}", usersEntity.getUsername(), e.getMessage());
                 // Throw a custom exception for the failure
                 throw new SpringVisitorException("Sorry, to send otp for user",
                         ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
@@ -250,11 +265,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public CompletableFuture<String> handleForgetPassword(String username) {
         return CompletableFuture.supplyAsync(() -> {
-            UserDocument userDoc = userRepository.findByUsername(username)
+            UsersEntity userDoc = userRepository.findByUsername(username)
                     .orElseThrow(() -> new SpringVisitorException("Username not found", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
             try {
 
-                userDoc.setForgetPassword(new UserDocument.ForgetPassword(
+                userDoc.setForgetPassword(new UsersEntity.ForgetPassword(
                         UUID.randomUUID().toString(),
                         Instant.now()
                 ));
@@ -273,38 +288,11 @@ public class UserServiceImpl implements UserService {
         });
     }
 
-    private static String getString(String username, UserDocument userDoc) {
-        String url = String.format("http://localhost:8080/api/auth/reset-password/for-user/%s/token/%s", username, userDoc.getForgetPassword().getUUID());
-        logger.info("URL is: {}", url);
-        // Prepare the message to be sent to admins
-        return String.format(
-                """
-                📢 <b>Password Reset Request</b>
-                
-                👤 <b>User:</b> %s
-                🔗 <b>Reset Link:- </b> <a href="%s">%s</a>
-                
-                ⚠️ <i>Note:</i> This link is valid for <b>30 minutes</b>. Please ensure the user opens it in their browser.
-                
-                Thank you, 🙏
-                — <i>Suryansh Sharma</i>
-                """,
-                userDoc.getUsername(), url, url
-        );
-
-
-    }
-
     @Override
     public UserDto.Credentials getJwtFromRefToken(String refreshToken) {
-        UserDocument userDoc = userRepository.findByRefreshTokensToken(refreshToken)
+        UsersEntity userDoc = userRepository.findByRefreshTokenToken(refreshToken)
                 .orElseThrow(() -> new SpringVisitorException("Refresh token is Invalid !!", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
-        // Find the refresh token from the list of tokens
-        UserDocument.RefreshToken rft = userDoc.getRefreshTokens()
-                .stream()
-                .filter(r -> r.getToken().equals(refreshToken))
-                .findFirst()
-                .orElseThrow(() -> new SpringVisitorException("Refresh token not found in user's tokens.", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
+        UsersEntity.RefreshToken rft = userDoc.getRefreshToken();
         ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 
         // Check if the refresh token is expired
@@ -325,29 +313,108 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String logoutUser(String useId, String refreshToken, Instant expiration, String jwtToken) {
-        UserDocument userDoc = cacheService.FetchUser(useId);
-        // Remove the refresh token from the user's list of refresh tokens
-        boolean isTokenRemoved = userDoc.getRefreshTokens()
-                .removeIf(r -> r.getToken().equals(refreshToken));
-        // If the refresh token is not found, throw an exception
-        if (!isTokenRemoved) {
-            throw new SpringVisitorException("Refresh token not found in user's tokens.", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST);
+    public String logoutUser(String userId,
+                             String refreshToken,
+                             Instant expiration,
+                             String jwtToken) {
+        UsersEntity user = cacheService.FetchUser(userId);
+        UsersEntity.RefreshToken rft = user.getRefreshToken();
+        if (rft == null || !rft.getToken().equals(refreshToken)) {
+            throw new SpringVisitorException(
+                    "Refresh token is invalid.",
+                    ErrorType.NOT_FOUND,
+                    HttpStatus.BAD_REQUEST
+            );
         }
+        // Remove refresh token
+        user.setRefreshToken(null);
         try {
-            // Add the JWT token to the blacklist (invalidate it)
-            boolean isTokenBlackListed = cacheService.addInvalidJwt(jwtToken, expiration);
-            // If the token was blacklisted successfully, save the user document
-            if (isTokenBlackListed) {
-                userRepository.save(userDoc); // Save the updated user document
+            // Blacklist JWT
+            boolean tokenBlacklisted = cacheService.addInvalidJwt(jwtToken, expiration);
+            if (tokenBlacklisted) {
+                userRepository.save(user);
             }
             return "Successfully logged out";
         } catch (Exception e) {
-            logger.error("Unable to logout user: {} - {}", userDoc.getUsername(), e.getMessage());
-            throw new SpringVisitorException("Unable to logout !!", ErrorType.INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Unable to logout user: {} - {}", user.getUsername(), e.getMessage());
+            throw new SpringVisitorException(
+                    "Unable to logout.",
+                    ErrorType.INTERNAL_ERROR,
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
+
+    @Override
+    public List<UserSummaryDto> getAllUsers() {
+        return userRepository.findAll().stream().map(this::toSummary).toList();
+    }
+
+    @Override
+    public UserSummaryDto createUserByAdmin(CreateUserModel model) {
+        Optional<UsersEntity> existing = userRepository.findByUsername(model.getUsername());
+        if (existing.isPresent()) {
+            throw new SpringVisitorException("Username " + model.getUsername() + " is already present !!",
+                    ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+        }
+        UsersEntity user = UsersEntity.builder()
+                .username(model.getUsername())
+                .password(passwordEncoder.encode(model.getPassword()))
+                .contact(model.getContact())
+                .role(UsersEntity.ROLE.valueOf(model.getRole().toUpperCase()))
+                .isActive(true)
+                .isVerified(true)
+                .build();
+        try {
+            return toSummary(userRepository.save(user));
+        } catch (Exception e) {
+            logger.error("Unable to create user: {} - {}", model.getUsername(), e.getMessage());
+            throw new SpringVisitorException("Sorry, unable to create user",
+                    ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Override
+    public UserSummaryDto updateUserRole(String userId, String role) {
+        UsersEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new SpringVisitorException("User not found", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
+        user.setRole(UsersEntity.ROLE.valueOf(role.toUpperCase()));
+        return toSummary(userRepository.save(user));
+    }
+
+    @Override
+    public UserSummaryDto setUserActive(String userId, boolean isActive) {
+        UsersEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new SpringVisitorException("User not found", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
+        user.setActive(isActive);
+        return toSummary(userRepository.save(user));
+    }
+
+    @Override
+    public String deleteUser(String userId, String requestingUserId) {
+        if (userId.equals(requestingUserId)) {
+            throw new SpringVisitorException("You cannot delete your own account", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+        }
+        UsersEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new SpringVisitorException("User not found", ErrorType.NOT_FOUND, HttpStatus.BAD_REQUEST));
+        if (user.getRole() == UsersEntity.ROLE.ADMIN && userRepository.countByRole(UsersEntity.ROLE.ADMIN) <= 1) {
+            throw new SpringVisitorException("Cannot delete the last remaining admin", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+        }
+        userRepository.delete(user);
+        return "User deleted successfully";
+    }
+
+    private UserSummaryDto toSummary(UsersEntity user) {
+        return new UserSummaryDto(
+                user.getId(),
+                user.getUsername(),
+                user.getContact(),
+                user.getRole().name(),
+                user.isActive(),
+                user.isVerified()
+        );
+    }
 
     private boolean isOtpExpired(Instant generatedOn) {
         return Duration.between(generatedOn, Instant.now()).toMinutes() >= OTP_EXPIRATION_MINUTES;

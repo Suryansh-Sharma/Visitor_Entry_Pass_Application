@@ -1,7 +1,9 @@
 package com.suryansh.visitorentry.controller;
 
 import com.suryansh.visitorentry.dto.UserDto;
+import com.suryansh.visitorentry.dto.UserSummaryDto;
 import com.suryansh.visitorentry.exception.SpringVisitorException;
+import com.suryansh.visitorentry.model.CreateUserModel;
 import com.suryansh.visitorentry.model.UserModel;
 import com.suryansh.visitorentry.security.JwtService;
 import com.suryansh.visitorentry.security.UserPrincipal;
@@ -10,6 +12,7 @@ import io.jsonwebtoken.Claims;
 import jakarta.validation.Valid;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -92,6 +96,38 @@ public class UserController {
         Instant expiration = claims.getExpiration().toInstant();
         System.out.println("expiration: " + expiration);
         return userService.logoutUser(userPrincipal.getUsername(),refreshToken,expiration,jwtToken);
+    }
+
+    @QueryMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserSummaryDto> getAllUsers() {
+        return userService.getAllUsers();
+    }
+
+    @MutationMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserSummaryDto createUser(@Argument("input") @Valid CreateUserModel input) {
+        return userService.createUserByAdmin(input);
+    }
+
+    @MutationMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserSummaryDto updateUserRole(@Argument("userId") String userId, @Argument("role") String role) {
+        return userService.updateUserRole(userId, role);
+    }
+
+    @MutationMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserSummaryDto setUserActive(@Argument("userId") String userId, @Argument("isActive") boolean isActive) {
+        return userService.setUserActive(userId, isActive);
+    }
+
+    @MutationMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public String deleteUser(@Argument("userId") String userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        return userService.deleteUser(userId, userPrincipal.getUsername());
     }
 
 }
