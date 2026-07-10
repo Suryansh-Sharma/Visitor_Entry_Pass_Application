@@ -31,8 +31,9 @@
   "scripts": {
     "vite:dev": "vite",
     "electron:start": "cross-env NODE_ENV=development concurrently \"npm run vite:dev\" \"electron . --no-sandbox\"",
+    "backend:build": "cd ../spring-visitor-entry && mvn -DskipTests package",
     "build": "vite build",
-    "electron:build": "cross-env NODE_ENV=production npm run build && electron-builder",
+    "electron:build": "npm run backend:build && cross-env NODE_ENV=production npm run build && electron-builder",
     "lint": "eslint ."
   },
   "devDependencies": {
@@ -61,8 +62,7 @@
       "dist/**/*",
       "public/electron.js",
       "public/preload.js",
-      "public/assets/**/*",
-      "public/spring-visitor-entry-0.0.1-SNAPSHOT.jar"
+      "public/assets/**/*"
     ],
     "directories": {
       "output": "release"
@@ -71,19 +71,18 @@
       "target": [
         "nsis"
       ],
-      "icon": "public/icon.ico",
-      "extraResources": [
-        {
-          "from": "public/extraResources/**",
-          "to": "extraResources/",
-          "filter": ["**/*"]
-        },
-        {
-          "from": "public/assets/**",
-          "to": "assets/",
-          "filter": ["**/*"]
-        }
-      ]
-    }
+      "icon": "public/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "../spring-visitor-entry/target/spring-visitor-entry-0.0.1-SNAPSHOT.jar",
+        "to": "backend/spring-visitor-entry-0.0.1-SNAPSHOT.jar"
+      },
+      {
+        "from": "public/assets",
+        "to": "assets",
+        "filter": ["**/*"]
+      }
+    ]
   }
 }

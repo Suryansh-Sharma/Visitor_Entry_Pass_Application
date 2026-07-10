@@ -8,7 +8,7 @@ export default defineConfig({
       jsxRuntime: "automatic",
     }),
   ],
-  base: "/",
+  base: "./",
   define: {
     "process.env": {},
   },
