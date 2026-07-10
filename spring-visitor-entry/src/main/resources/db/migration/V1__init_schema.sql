@@ -1,12 +1,12 @@
 CREATE TABLE users
 (
     id                           TEXT PRIMARY KEY,
-    username                     TEXT    NOT NULL UNIQUE,
-    password                     TEXT    NOT NULL,
+    username                     TEXT     UNIQUE,
+    password                     TEXT    ,
     contact                      TEXT,
-    role                         TEXT    NOT NULL,
-    is_active                    BOOLEAN NOT NULL DEFAULT 1,
-    is_verified                  BOOLEAN NOT NULL DEFAULT 0,
+    role                         TEXT    ,
+    is_active                    BOOLEAN  DEFAULT 1,
+    is_verified                  BOOLEAN  DEFAULT 0,
 
     verification_otp             INTEGER,
     verification_generated_on    TEXT,
@@ -23,14 +23,14 @@ CREATE TABLE visitors
     id                     TEXT PRIMARY KEY,
 
     visitor_contact        TEXT UNIQUE,
-    visitor_name           TEXT    NOT NULL,
+    visitor_name           TEXT    ,
     visitor_image          TEXT,
 
-    has_children_in_school BOOLEAN NOT NULL DEFAULT 0,
+    has_children_in_school BOOLEAN  DEFAULT 0,
     last_visited_on        TEXT,
 
     banned_on              TEXT,
-    is_visitor_banned      BOOLEAN NOT NULL DEFAULT 0,
+    is_visitor_banned      BOOLEAN  DEFAULT 0,
     ban_reason             TEXT,
 
     address_city           TEXT,
@@ -41,8 +41,8 @@ CREATE TABLE visitors
 CREATE TABLE visitor_children
 (
     id         TEXT PRIMARY KEY,
-    visitor_id TEXT NOT NULL,
-    name       TEXT NOT NULL,
+    visitor_id TEXT ,
+    name       TEXT ,
     standard   TEXT,
 
     FOREIGN KEY (visitor_id) REFERENCES visitors (id) ON DELETE CASCADE
@@ -51,11 +51,11 @@ CREATE TABLE visitor_children
 CREATE TABLE visiting_records
 (
     id           TEXT PRIMARY KEY,
-    visitor_id   TEXT NOT NULL,
-    visited_on   TEXT NOT NULL,
+    visitor_id   TEXT ,
+    visited_on   TEXT ,
     reason       TEXT,
     visitor_host TEXT,
-    status       TEXT NOT NULL,
+    status       TEXT ,
     note         TEXT,
 
     FOREIGN KEY (visitor_id) REFERENCES visitors (id) ON DELETE CASCADE
@@ -63,9 +63,9 @@ CREATE TABLE visiting_records
 CREATE TABLE telegram_ids
 (
     id           TEXT PRIMARY KEY,
-    host_name    TEXT NOT NULL,
-    chat_id      TEXT NOT NULL UNIQUE,
-    role         TEXT NOT NULL,
+    host_name    TEXT ,
+    chat_id      TEXT  UNIQUE,
+    role         TEXT ,
     date_of_join TEXT
 );
 CREATE TABLE app_settings

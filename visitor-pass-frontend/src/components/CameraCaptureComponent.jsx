@@ -1,30 +1,21 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Button, message, Select, Space, Tag, Typography } from "antd";
 import { RetweetOutlined, VideoCameraOutlined } from "@ant-design/icons";
-import Webcam from "react-webcam";
+import { CameraContext } from "../context/CameraContext";
 
 const { Text } = Typography;
 
 function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
-  const webcamRef = useRef(null);
+  const { stream, devices, selectedDeviceId, isReady, error, switchDevice } =
+    useContext(CameraContext);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const [messageApi, contextHolder] = message.useMessage();
-
-  // --- HARDWARE PERIPHERALS SYSTEM STATES ---
-  const [devices, setDevices] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
-  const [isWebCamReady, setIsWebCamReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [hasShownError, setHasShownError] = useState(false);
 
-  // 💡 STATE CIRCUIT BREAKER: Read directly from incoming form context values
   const currentImage = value ?? null;
 
-  // Programmatic options schema array mapping
   const cameraOptions = useMemo(
     () =>
       devices.map((device) => ({
@@ -34,81 +25,39 @@ function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
     [devices],
   );
 
-  // Pure device hardware lookup engine
-  const updateDeviceList = useCallback(async () => {
-    try {
-      const mediaDevices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = mediaDevices.filter((d) => d.kind === "videoinput");
-
-      setDevices(videoDevices);
-      setSelectedDeviceId((current) => {
-        if (current && videoDevices.some((d) => d.deviceId === current)) {
-          return current;
-        }
-        return videoDevices[0]?.deviceId ?? null;
-      });
-    } catch (err) {
-      console.error("Failed to enumerate active system capture hardware:", err);
+  // Attach the already-live, app-wide stream to this page's <video> element.
+  // No getUserMedia call here — the camera was already opened once by
+  // CameraProvider at app startup, so this is just a DOM operation.
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
     }
-  }, []);
+  }, [stream]);
 
-  // Main permission lookup and initialization lifecycle hook
   useEffect(() => {
-    let isMounted = true;
-
-    const initializeCameraSystem = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
-        stream.getTracks().forEach((track) => track.stop()); // Instantly drop hook track to release peripheral lock
-
-        if (isMounted) {
-          await updateDeviceList();
-        }
-      } catch (err) {
-        console.error(err);
-        if (isMounted) {
-          messageApi.error(
-            "Security alert: Optical hardware acquisition permissions rejected.",
-          );
-        }
-      }
-    };
-
-    initializeCameraSystem();
-    return () => {
-      isMounted = false;
-    };
-  }, [updateDeviceList, messageApi]);
-
-  // Handle runtime hardware device changes (e.g., unplugging/plugging webcams)
-  useEffect(() => {
-    const handleDeviceChange = () => updateDeviceList();
-    navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
-    return () => {
-      navigator.mediaDevices.removeEventListener(
-        "devicechange",
-        handleDeviceChange,
+    if (error && !hasShownError) {
+      setHasShownError(true);
+      messageApi.error(
+        "Security alert: Optical hardware acquisition permissions rejected.",
       );
-    };
-  }, [updateDeviceList]);
+    }
+  }, [error, hasShownError, messageApi]);
 
   const captureImage = () => {
-    if (isCapturing || disabled || !webcamRef.current) return;
+    if (isCapturing || disabled || !videoRef.current) return;
     setIsCapturing(true);
 
-    setTimeout(() => {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) {
-        setIsCapturing(false);
-        return;
-      }
+    const video = videoRef.current;
+    const canvas = canvasRef.current ?? document.createElement("canvas");
+    canvasRef.current = canvas;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageSrc = canvas.toDataURL("image/jpeg", 0.92);
 
-      // 💡 Dispatch straight up to the parent form context container
-      onChange?.(imageSrc);
-      setIsCapturing(false);
-    }, 200);
+    onChange?.(imageSrc);
+    setIsCapturing(false);
   };
 
   const resetCapture = () => {
@@ -129,23 +78,12 @@ function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
 
           <div className="relative rounded-xl overflow-hidden border border-slate-300 shadow-sm bg-black w-[300px] h-[200px] flex items-center justify-center">
             {!disabled ? (
-              <Webcam
-                key={selectedDeviceId}
-                ref={webcamRef}
-                audio={false}
-                mirrored
-                screenshotFormat="image/jpeg"
-                screenshotQuality={0.92}
-                onUserMedia={() => setIsWebCamReady(true)}
-                onUserMediaError={() => setIsWebCamReady(false)}
-                className="w-full h-full object-cover"
-                videoConstraints={{
-                  deviceId: selectedDeviceId
-                    ? { exact: selectedDeviceId }
-                    : undefined,
-                  width: 1280,
-                  height: 720,
-                }}
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover -scale-x-100"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-100 p-4 text-center">
@@ -155,7 +93,7 @@ function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
               </div>
             )}
 
-            {!isWebCamReady && !disabled && (
+            {!isReady && !disabled && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
                 <Text
                   type="secondary"
@@ -172,10 +110,7 @@ function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
               disabled={isCapturing}
               className="w-[300px] mt-3 text-xs"
               value={selectedDeviceId}
-              onChange={(val) => {
-                setIsWebCamReady(false);
-                setSelectedDeviceId(val);
-              }}
+              onChange={(val) => switchDevice(val)}
               options={cameraOptions}
             />
           )}
@@ -220,7 +155,7 @@ function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
                 icon={<VideoCameraOutlined />}
                 loading={isCapturing}
                 onClick={captureImage}
-                disabled={!isWebCamReady || disabled}
+                disabled={!isReady || disabled}
                 className="bg-blue-600 hover:bg-blue-500 border-none rounded-lg text-xs font-semibold shadow-sm h-8"
               >
                 Snapshot
@@ -238,10 +173,10 @@ function CameraCaptureComponent({ value = null, onChange, disabled = false }) {
             </Space>
 
             <Tag
-              color={isWebCamReady && !disabled ? "success" : "default"}
+              color={isReady && !disabled ? "success" : "default"}
               className="font-bold text-[9px] uppercase tracking-wide rounded-md m-0"
             >
-              {isWebCamReady && !disabled ? "Hardware Ready" : "Standby"}
+              {isReady && !disabled ? "Hardware Ready" : "Standby"}
             </Tag>
           </div>
         </div>

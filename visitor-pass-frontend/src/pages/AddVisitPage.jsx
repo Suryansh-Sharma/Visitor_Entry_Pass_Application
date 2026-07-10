@@ -18,6 +18,7 @@ import {
   Typography,
   Space,
 } from "antd";
+import axios from "axios";
 import { useContext, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
@@ -45,6 +46,10 @@ function AddVisitPage() {
   const [visitorFound, setVisitorFound] = useState(false);
   const [showVisitorForm, setShowVisitorForm] = useState(true);
   const [showImageSec, setShowImageSec] = useState(true);
+  // Camera stays unmounted (no live video feed running) until the contact
+  // number is fully entered — starting the webcam eagerly on page load makes
+  // typing feel laggy since a continuous 720p decode competes for the main thread.
+  const [cameraEnabled, setCameraEnabled] = useState(false);
 
   // --- LIVE GRAPHQL OPERATIONS ---
   const [searchVisitor, { loading: searchingVisitor }] = useLazyQuery(
@@ -136,9 +141,11 @@ function AddVisitPage() {
       setVisitorFound(false);
       setVisitorProfile(null);
       setShowVisitorForm(false);
+      setCameraEnabled(false);
       return;
     }
 
+    setCameraEnabled(true);
     debounceRef.current = setTimeout(() => {
       searchVisitor({
         variables: { visitorContact: phone },
@@ -149,6 +156,7 @@ function AddVisitPage() {
   const handleClearForm = () => {
     form.resetFields();
     resetVisitorStates("");
+    setCameraEnabled(false);
   };
 
   const onFinishSubmit = async (values) => {
@@ -173,10 +181,33 @@ function AddVisitPage() {
     if (!confirmAction.isConfirmed) return;
 
     try {
+      let finalImageFilename =
+        values.visitorImage || visitorProfile?.visitorImage || "default-visitor.png";
+
+      // A fresh camera capture arrives as a base64 data URL — it must be uploaded
+      // to the backend's image storage first; the visit record only stores a filename.
+      if (finalImageFilename.startsWith("data:")) {
+        const generatedFilename = `${new Date().toISOString().replace(/[:.]/g, "-")}.jpg`;
+        const base64Buffer = finalImageFilename.split(",")[1];
+        const blob = new Blob(
+          [Uint8Array.from(atob(base64Buffer), (c) => c.charCodeAt(0))],
+          { type: "image/jpeg" },
+        );
+
+        const fileUploadPayload = new FormData();
+        fileUploadPayload.append("image", blob, generatedFilename);
+
+        await axios.post(
+          `http://localhost:8080/api/v1/file/new-image/${generatedFilename}`,
+          fileUploadPayload,
+        );
+        finalImageFilename = generatedFilename;
+      }
+
       const visitInputPayload = {
         visitorContact: values.visitorContact,
         visitorName: values.visitorName,
-        visitorImage: values.visitorImage || visitorProfile?.visitorImage || "default-visitor.png",
+        visitorImage: finalImageFilename,
         visitorAddress: {
           city: values.city,
           line1: values.line1,
@@ -513,31 +544,39 @@ function AddVisitPage() {
           </Card>
 
           {/* CAMERA COMPONENT CONTAINER */}
-          {(!visitorFound || showImageSec) && (
-            <Card
-              className="shadow-sm border-slate-200/80 rounded-xl"
-              title={
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Visitor Photograph Verification
-                </span>
-              }
-            >
-              <Form.Item
-                name="visitorImage"
-                valuePropName="value"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please capture the visitor photograph.",
-                  },
-                ]}
+          {(!visitorFound || showImageSec) &&
+            (cameraEnabled ? (
+              <Card
+                className="shadow-sm border-slate-200/80 rounded-xl"
+                title={
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Visitor Photograph Verification
+                  </span>
+                }
               >
-                <CameraCaptureComponent
-                  disabled={visitorFound && !showImageSec}
-                />
-              </Form.Item>
-            </Card>
-          )}
+                <Form.Item
+                  name="visitorImage"
+                  valuePropName="value"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please capture the visitor photograph.",
+                    },
+                  ]}
+                >
+                  <CameraCaptureComponent
+                    disabled={visitorFound && !showImageSec}
+                  />
+                </Form.Item>
+              </Card>
+            ) : (
+              <Card className="shadow-sm border-slate-200/80 rounded-xl border-dashed">
+                <Text type="secondary" className="text-xs italic">
+                  Enter a complete 10-digit contact number to enable the
+                  camera for photograph capture.
+                </Text>
+              </Card>
+            ))}
 
           {/* OPERATIONAL DISPATCH ACTIONS HUB PANEL */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto pt-2">
