@@ -21,7 +21,10 @@ import { SEARCH_VISITS } from "../graphQl/queries";
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 function VisitsPage() {
-  const todayDate = new Date().toISOString().split("T")[0];
+  // dayjs().format uses the browser's local calendar date; new Date().toISOString()
+  // would use UTC instead, which rolls back to "yesterday" for part of the day in
+  // timezones ahead of UTC (e.g. early morning IST) — exactly the reported bug.
+  const todayDate = dayjs().format("YYYY-MM-DD");
   const [pagination, SetPagination] = useState({
     pageNo: 0,
     pageSize: 10,
