@@ -82,6 +82,11 @@
         "from": "public/assets",
         "to": "assets",
         "filter": ["**/*"]
+      },
+      {
+        "from": "public/extraResources/jre",
+        "to": "jre",
+        "filter": ["**/*"]
       }
     ]
   }

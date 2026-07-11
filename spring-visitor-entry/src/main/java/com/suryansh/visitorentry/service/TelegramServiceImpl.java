@@ -95,9 +95,9 @@ public class TelegramServiceImpl implements TelegramService {
             // Execute Telegram message
             sendPhoto.setParseMode("Markdown");
             sendPhoto.setReplyMarkup(buildKeyboard(dto.visitId()));
-            logger.info("Send Photo {}", sendPhoto);
+//            logger.info("Send Photo {}", sendPhoto);
             telegramBot.execute(sendPhoto);
-            logger.info("VisitorsEntity request sent to {}", chatId);
+//            logger.info("Visitor request sent to {}", chatId);
         } catch (Exception e) {
             logger.error("Error sending telegram message for visitor {}", dto.visitorName(), e);
         }
@@ -238,9 +238,9 @@ public class TelegramServiceImpl implements TelegramService {
     private String buildMessage(TelegramMessageDto dto) {
         return String.format(
                 """
-                        🚪 *New VisitorsEntity Request*
+                        🚪 *New Visitor Request*
                         
-                        *VisitorsEntity:* %s
+                        *Visitor:* %s
                         *Contact:* %s
                         *Reason:* %s
                         

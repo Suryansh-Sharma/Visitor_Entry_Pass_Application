@@ -38,7 +38,7 @@ public class ListenTelegramEvent {
             logger.warn("Visit {} already processed with status {}",
                     visitId, visitingRecordEntity.getStatus());
 
-            return "⚠️ VisitorsEntity " + visitorName + " was already "
+            return "⚠️ Visitor " + visitorName + " was already "
                     + visitingRecordEntity.getStatus().toString().toLowerCase();
         }
         // ✅ Process status
@@ -54,9 +54,9 @@ public class ListenTelegramEvent {
             visitingRecordRepo.save(visitingRecordEntity);
             // 🎯 Return proper message
             if (visitingRecordEntity.getStatus() == VisitingRecordEntity.Status.ACCEPTED) {
-                return "✅ VisitorsEntity " + visitorName + " has been accepted.";
+                return "✅ Visitor " + visitorName + " has been accepted.";
             } else {
-                return "❌ VisitorsEntity " + visitorName + " has been rejected.";
+                return "❌ Visitor " + visitorName + " has been rejected.";
             }
         } catch (Exception e) {
             logger.error("Unable to update status for visiting record {}", visitId, e);

@@ -283,6 +283,7 @@ function TelegramIds() {
                   className="h-10 text-xs font-semibold text-slate-700"
                   options={[
                     { value: "ADMIN", label: "ADMIN" },
+                    { value: "MANAGER", label: "MANAGER" },
                     { value: "TEACHER", label: "TEACHER STAFF" },
                     { value: "RECEPTIONIST", label: "RECEPTION DESK" },
                     { value: "EXTRA", label: "TEMPORARY / AUXILIARY" },

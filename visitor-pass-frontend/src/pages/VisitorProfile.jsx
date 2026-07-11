@@ -108,10 +108,12 @@ function VisitorProfile() {
         <Text className="text-slate-600 text-xs font-medium">
           <CalendarOutlined className="mr-1 text-slate-400" />
           {date
-            ? new Date(date).toLocaleDateString("en-US", {
+            ? new Date(date).toLocaleString("en-US", {
                 month: "short",
                 day: "2-digit",
                 year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
               })
             : "N/A"}
         </Text>

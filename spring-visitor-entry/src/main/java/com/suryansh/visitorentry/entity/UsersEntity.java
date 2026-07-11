@@ -37,6 +37,7 @@ public class UsersEntity {
     private RefreshToken refreshToken;
 
     public enum ROLE {
+        MANAGER,
         USER,
         ADMIN,
         RECEPTIONIST,

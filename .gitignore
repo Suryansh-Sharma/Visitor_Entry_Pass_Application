@@ -67,6 +67,7 @@ visitor-pass-frontend/release/
 visitor-pass-frontend/out/
 visitor-pass-frontend/electron-dist/
 visitor-pass-frontend/*.asar
+visitor-pass-frontend/public/extraResources/jre/
 
 # ==========================
 # SQLite (Phase 2)

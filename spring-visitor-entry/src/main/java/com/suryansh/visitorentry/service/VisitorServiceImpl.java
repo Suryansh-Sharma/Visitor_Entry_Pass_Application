@@ -64,53 +64,53 @@ public class VisitorServiceImpl implements VisitorService {
     @Async
     @CacheEvict(value = "visitsOnSpecificDate", allEntries = true)
     public CompletableFuture<String> addNewVisitInDb(AddNewVisitModel visitModel) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                Optional<VisitorsEntity> visitorOptional = visitRepository.findByVisitorContact(visitModel.getVisitorContact());
-                VisitorsEntity visitorDoc;
-                if (visitorOptional.isPresent()) {
-                    visitorDoc = visitorOptional.get();
-                    if (visitorDoc.getBanStatus() != null && Boolean.TRUE.equals(visitorDoc.getBanStatus().getIsVisitorBanned())) {
-                        throw new SpringVisitorException("VisitorsEntity " + visitorDoc.getVisitorName() + " is banned on " + visitorDoc.getBanStatus().getBannedOn(), ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-                    }
-                } else {
-                    if (!fileService.checkFileExist(visitModel.getVisitorImage())) {
-                        throw new SpringVisitorException("Image " + visitModel.getVisitorImage() + " does not exist !! Add image first", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
-                    }
-                    visitorDoc = mapperService.mapAddNewVisitModelToEntity(visitModel);
-                    attachChildren(visitorDoc);
-                    visitorDoc = visitRepository.save(visitorDoc);
+        try {
+            Optional<VisitorsEntity> visitorOptional = visitRepository.findByVisitorContact(visitModel.getVisitorContact());
+            VisitorsEntity visitorDoc;
+            if (visitorOptional.isPresent()) {
+                visitorDoc = visitorOptional.get();
+                if (visitorDoc.getBanStatus() != null && Boolean.TRUE.equals(visitorDoc.getBanStatus().getIsVisitorBanned())) {
+                    throw new SpringVisitorException("Visitor " + visitorDoc.getVisitorName() + " is banned on " + visitorDoc.getBanStatus().getBannedOn(), ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
                 }
-                VisitingRecordEntity visitingRecordDoc = mapperService.mapAddNewVisitVisitingRecordToEntity(visitModel.getVisitingRecord());
-                visitingRecordDoc.setStatus(VisitingRecordEntity.Status.PENDING);
-                visitingRecordDoc.setVisitorId(visitorDoc.getId());
-
-                ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-                visitingRecordDoc.setVisitedOn(nowInIndia.toInstant());
-
-                visitingRecordDoc = visitingRecordRepo.save(visitingRecordDoc);
-
-                TelegramMessageDto telegramMessage = new TelegramMessageDto(visitingRecordDoc.getId(), visitModel.getVisitorContact(), visitModel.getVisitorName(), visitModel.getVisitingRecord().getReason(), visitModel.getVisitorImage(), visitModel.getVisitingRecord().getVisitorHost(), visitModel.getVisitorAddress().getCity(), visitModel.getVisitorAddress().getLine1(), visitModel.getVisitorAddress().getPinCode());
-                telegramService.sendVisitMessageToHost(telegramMessage);
-                return "Visit successfully added for user " + visitModel.getVisitorName();
-            } catch (SpringVisitorException e) {
-                throw e;
-            } catch (Exception e) {
-                logger.error("Unable to add new visit {}", e.getMessage(), e);
-                throw new SpringVisitorException("Unable to add new visit, " + e.getMessage(), ErrorType.INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
+                if (!fileService.checkFileExist(visitModel.getVisitorImage())) {
+                    throw new SpringVisitorException("Image " + visitModel.getVisitorImage() + " does not exist !! Add image first", ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+                }
+                visitorDoc = mapperService.mapAddNewVisitModelToEntity(visitModel);
+                attachChildren(visitorDoc);
+                visitorDoc = visitRepository.save(visitorDoc);
             }
-        });
+            VisitingRecordEntity visitingRecordDoc = mapperService.mapAddNewVisitVisitingRecordToEntity(visitModel.getVisitingRecord());
+            visitingRecordDoc.setStatus(VisitingRecordEntity.Status.PENDING);
+            visitingRecordDoc.setVisitorId(visitorDoc.getId());
+            if(visitorDoc.getVisitorChildren()!=null && !visitorDoc.getVisitorChildren().isEmpty()){
+                visitorDoc.setHasChildrenInSchool(true);
+            }
+            ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+            visitingRecordDoc.setVisitedOn(nowInIndia.toInstant());
+
+            visitingRecordDoc = visitingRecordRepo.save(visitingRecordDoc);
+
+            TelegramMessageDto telegramMessage = new TelegramMessageDto(visitingRecordDoc.getId(), visitModel.getVisitorContact(), visitModel.getVisitorName(), visitModel.getVisitingRecord().getReason(), visitModel.getVisitorImage(), visitModel.getVisitingRecord().getVisitorHost(), visitModel.getVisitorAddress().getCity(), visitModel.getVisitorAddress().getLine1(), visitModel.getVisitorAddress().getPinCode());
+            telegramService.sendVisitMessageToHost(telegramMessage);
+            return CompletableFuture.completedFuture("Visit successfully added for user " + visitModel.getVisitorName());
+        } catch (SpringVisitorException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unable to add new visit {}", e.getMessage(), e);
+            throw new SpringVisitorException("Unable to add new visit, " + e.getMessage(), ErrorType.INTERNAL_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @Override
     public String handleBanVisitor(String visitorId, String reason) {
         Optional<VisitorsEntity> visitorDocOptional = visitRepository.findById(visitorId);
         if (visitorDocOptional.isEmpty()) {
-            throw new SpringVisitorException("VisitorsEntity not found for ID: " + visitorId, ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
+            throw new SpringVisitorException("Visitor not found for ID: " + visitorId, ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         VisitorsEntity visitorDoc = visitorDocOptional.get();
         if (visitorDoc.getBanStatus() != null && visitorDoc.getBanStatus().getIsVisitorBanned()) {
-            throw new SpringVisitorException("VisitorsEntity " + visitorDoc.getVisitorName() + " is already banned since " + visitorDoc.getBanStatus().getBannedOn(), ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
+            throw new SpringVisitorException("Visitor " + visitorDoc.getVisitorName() + " is already banned since " + visitorDoc.getBanStatus().getBannedOn(), ErrorType.BAD_REQUEST, HttpStatus.BAD_REQUEST);
         }
         // Set the ban status
         VisitorsEntity.BanStatus banStatus = new VisitorsEntity.BanStatus();
@@ -119,23 +119,23 @@ public class VisitorServiceImpl implements VisitorService {
         banStatus.setReason(reason);
         visitorDoc.setBanStatus(banStatus);
         visitRepository.save(visitorDoc);
-        return "VisitorsEntity " + visitorDoc.getVisitorName() + " has been banned successfully.";
+        return "Visitor " + visitorDoc.getVisitorName() + " has been banned successfully.";
     }
 
     @Override
     public String handleBanUnVisitor(String visitorId) {
         Optional<VisitorsEntity> visitorDocOptional = visitRepository.findById(visitorId);
         if (visitorDocOptional.isEmpty()) {
-            throw new SpringVisitorException("VisitorsEntity not found for ID: " + visitorId, ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
+            throw new SpringVisitorException("Visitor not found for ID: " + visitorId, ErrorType.NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         VisitorsEntity visitorDoc = visitorDocOptional.get();
         if (visitorDoc.getBanStatus() == null || !visitorDoc.getBanStatus().getIsVisitorBanned()) {
-            return "VisitorsEntity " + visitorDoc.getVisitorName() + " is not currently banned.";
+            return "Visitor " + visitorDoc.getVisitorName() + " is not currently banned.";
         }
         // Remove the ban status
         visitorDoc.setBanStatus(null);
         visitRepository.save(visitorDoc);
-        return "VisitorsEntity " + visitorDoc.getVisitorName() + " has been unbanned successfully.";
+        return "Visitor " + visitorDoc.getVisitorName() + " has been unbanned successfully.";
     }
 
     @Override

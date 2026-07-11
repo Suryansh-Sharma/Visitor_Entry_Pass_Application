@@ -157,6 +157,7 @@ enum SortDirection {
     DESC
 }
 enum Role {
+    MANAGER,
     USER,
     ADMIN,
     RECEPTIONIST,

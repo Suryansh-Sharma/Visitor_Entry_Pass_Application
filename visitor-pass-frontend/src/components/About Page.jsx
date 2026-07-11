@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button, Card, Divider, Typography } from "antd";
 import {
@@ -13,11 +13,13 @@ import {
   SendOutlined,
   UserAddOutlined,
 } from "@ant-design/icons";
+import { VisitorEntryPassContext } from "../context/VisitorEntryPassContext";
 
 const { Title, Text, Paragraph } = Typography;
 
 function AboutPage() {
   const navigate = useNavigate();
+  const { userInfo } = useContext(VisitorEntryPassContext);
 
   useEffect(() => {
     document.title = "About Application";
@@ -82,15 +84,17 @@ function AboutPage() {
               Search Visitor
             </Button>
 
-            <Button
-              type="default"
-              size="large"
-              icon={<SendOutlined />}
-              onClick={() => navigateTo("/telegramId")}
-              className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-violet-600 hover:!text-violet-500 hover:!border-violet-300 text-sm"
-            >
-              Telegram IDs
-            </Button>
+            {userInfo?.role === "ADMIN" && (
+              <Button
+                type="default"
+                size="large"
+                icon={<SendOutlined />}
+                onClick={() => navigateTo("/telegramId")}
+                className="h-11 rounded-xl font-medium border-slate-300 shadow-sm text-violet-600 hover:!text-violet-500 hover:!border-violet-300 text-sm"
+              >
+                Telegram IDs
+              </Button>
+            )}
           </div>
         </section>
 

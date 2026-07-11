@@ -5,7 +5,9 @@ import {
   ApolloProvider,
   InMemoryCache,
   createHttpLink,
+  from,
 } from "@apollo/client";
+import { onError } from "@apollo/client/link/error";
 import { setContext } from "@apollo/client/link/context";
 import { jwtDecode } from "jwt-decode";
 import React from "react";
@@ -62,11 +64,33 @@ const reGenerateToken = async () => {
     return newJwtToken;
   } catch (e) {
     console.error("Token regeneration error:", e);
-    localStorage.removeItem("userInfo");
-    window.location.reload();
+    redirectToLogin();
     return null;
   }
 };
+
+let isRedirectingToLogin = false;
+
+// Forces a clean logout instead of letting a raw "Unauthorized" GraphQL
+// error surface to the user — happens when this session's refresh token
+// has been invalidated (e.g. a newer login elsewhere replaced it, since
+// each user only has one active session/refresh token at a time).
+const redirectToLogin = () => {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+  localStorage.removeItem("userInfo");
+  window.location.hash = "#/login";
+  window.location.reload();
+};
+
+const errorLink = onError(({ graphQLErrors }) => {
+  const isUnauthorized = graphQLErrors?.some(
+    (err) => err.extensions?.classification === "UNAUTHORIZED",
+  );
+  if (isUnauthorized) {
+    redirectToLogin();
+  }
+});
 
 const httpLink = createHttpLink({
   uri: "http://localhost:8080/graphql",
@@ -126,7 +150,7 @@ const authLink = setContext(async (_, { headers }) => {
 });
 
 const client = new ApolloClient({
-  link: authLink.concat(httpLink),
+  link: from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache(),
   connectToDevTools: true,
 });

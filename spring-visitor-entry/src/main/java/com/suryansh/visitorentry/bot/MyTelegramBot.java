@@ -126,8 +126,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private String getPopupText(String action) {
         return switch (action) {
-            case "ACCEPT" -> "✅ VisitorsEntity accepted";
-            case "REJECT" -> "❌ VisitorsEntity rejected";
+            case "ACCEPT" -> "✅ Visitor accepted";
+            case "REJECT" -> "❌ Visitor rejected";
             default -> "⚠️ Action processed";
         };
     }

@@ -9,6 +9,7 @@ import { LoadingComponent } from "./components/LoadingComponent.jsx";
 import NotFoundPage from "./components/NotFoundPage.jsx";
 import AccountVerificationPage from "./components/Security/AccountVerificationPage.jsx";
 import LoginPage from "./components/Security/LoginPage.jsx";
+import AdminRoute from "./components/Security/AdminRoute.jsx";
 import PrivateRoute from "./components/Security/PrivateRoute.jsx";
 import PublicRoute from "./components/Security/PublicRoute.jsx";
 import OrgSetupPage from "./components/OrgSetupPage.jsx";
@@ -111,17 +112,17 @@ function App() {
           <Route
             path="telegramId"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <TelegramIds />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="organization"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <OrganizationPage />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
       </Routes>
